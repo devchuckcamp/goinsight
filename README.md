@@ -92,25 +92,26 @@ Edit `.env` and fill in your actual values:
 DATABASE_URL=postgres://goinsight:your_password@postgres:5432/goinsight?sslmode=disable
 POSTGRES_PASSWORD=your_password
 
-# LLM Configuration - Choose a FREE option!
-# See FREE_LLM_GUIDE.md for complete setup instructions
+# LLM Configuration - Using FREE Groq! (RECOMMENDED)
+# Get free key: https://console.groq.com/keys
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+LLM_MODEL=
 
-# Option 1: Mock (immediate, no setup)
-LLM_PROVIDER=mock
+# Other options:
+# Option 1: Mock (No setup, testing only)
+# LLM_PROVIDER=mock
 
-# Option 2: Groq (FREE, recommended)
-# Get key: https://console.groq.com/keys
-# GROQ_API_KEY=gsk_your_key_here
-# LLM_PROVIDER=groq
-
-# Option 3: Ollama (FREE, local)
+# Option 2: Ollama (FREE, local)
 # Install: https://ollama.ai
 # OLLAMA_URL=http://host.docker.internal:11434
 # LLM_PROVIDER=ollama
+# LLM_MODEL=llama3
 
-# Option 4: OpenAI (paid)
+# Option 3: OpenAI (Paid)
 # OPENAI_API_KEY=sk-your-key-here
 # LLM_PROVIDER=openai
+# LLM_MODEL=gpt-4o-mini
 
 # Jira Configuration (Optional - for creating tickets from insights)
 # Get your API token: https://id.atlassian.com/manage-profile/security/api-tokens

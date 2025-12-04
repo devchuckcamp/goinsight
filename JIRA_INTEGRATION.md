@@ -134,6 +134,18 @@ curl -X POST http://localhost:8080/api/jira-tickets \
 }
 ```
 
+### Example Generated Ticket in Jira
+
+The system creates well-structured tickets with:
+- **Priority**: Automatically calculated from magnitude (High priority shown)
+- **Labels**: Smart labels like `ai-insight`, `feedback`, `payment-options`
+- **Description**: Detailed context with Impact and Acceptance Criteria sections
+- **Summary**: Clear, concise title under 120 characters
+
+![Example Jira Ticket](docs/images/jira-ticket-example.png)
+
+*Screenshot shows "Payment Method Enhancement" ticket (SASS-10) created from AI insights with High priority, detailed description, and relevant labels.*
+
 ## Request Parameters
 
 ### `meta` Object (Required)
