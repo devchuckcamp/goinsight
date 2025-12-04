@@ -112,6 +112,12 @@ LLM_PROVIDER=mock
 # OPENAI_API_KEY=sk-your-key-here
 # LLM_PROVIDER=openai
 
+# Jira Configuration (Optional - for creating tickets from insights)
+# Get your API token: https://id.atlassian.com/manage-profile/security/api-tokens
+# JIRA_BASE_URL=https://your-domain.atlassian.net
+# JIRA_EMAIL=your-email@company.com
+# JIRA_API_TOKEN=your_jira_api_token_here
+
 # Server Configuration
 PORT=8080
 ENV=development
@@ -283,9 +289,14 @@ All configuration is managed through environment variables:
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes | - |
-| `OPENAI_API_KEY` | OpenAI API key for LLM | Yes | - |
-| `LLM_MODEL` | LLM model to use | No | `gpt-4` |
-| `LLM_PROVIDER` | LLM provider name | No | `openai` |
+| `LLM_PROVIDER` | LLM provider: `mock`, `groq`, `ollama`, `openai` | No | `mock` |
+| `OPENAI_API_KEY` | OpenAI API key (if using OpenAI) | Conditional | - |
+| `GROQ_API_KEY` | Groq API key (if using Groq) | Conditional | - |
+| `OLLAMA_URL` | Ollama server URL (if using Ollama) | No | `http://localhost:11434` |
+| `LLM_MODEL` | LLM model to use | No | Provider-specific default |
+| `JIRA_BASE_URL` | Jira Cloud base URL (optional) | No | - |
+| `JIRA_EMAIL` | Jira account email (optional) | No | - |
+| `JIRA_API_TOKEN` | Jira API token (optional) | No | - |
 | `PORT` | HTTP server port | No | `8080` |
 | `ENV` | Environment name | No | `development` |
 | `DEBUG` | Enable debug logging | No | `false` |
