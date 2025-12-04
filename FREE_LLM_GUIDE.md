@@ -258,3 +258,31 @@ docker compose down && docker compose up -d
 4. **Upgrade to OpenAI** only if you need the absolute best quality
 
 All three free options work great for most use cases!
+
+---
+
+## 🔒 Security & Production Precautions
+
+### API Key Management
+- **Never commit API keys** to version control
+- Use environment variables or secure secret managers
+- Rotate keys regularly and monitor usage
+- Set up alerts for unusual API consumption
+
+### Rate Limiting & Monitoring
+- Groq has generous free limits but monitor usage
+- Implement client-side rate limiting to prevent quota exhaustion
+- Use API monitoring tools to track costs and performance
+- Set up fallback to mock client if API limits are reached
+
+### Data Privacy Considerations
+- Review LLM provider privacy policies (Groq, OpenAI)
+- Avoid sending sensitive customer data through external APIs
+- Consider data residency requirements for compliance
+- Use local Ollama for maximum privacy control
+
+### Production Deployment Tips
+- Test thoroughly with mock client before production
+- Implement circuit breakers for API failures
+- Use structured logging for API request/response auditing
+- Plan for API provider changes (keys, endpoints, limits)

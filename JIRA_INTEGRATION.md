@@ -26,12 +26,14 @@ Add these to your `.env` file:
 JIRA_BASE_URL=https://your-domain.atlassian.net
 JIRA_EMAIL=your-email@company.com
 JIRA_API_TOKEN=your_jira_api_token_here
+JIRA_PROJECT_KEY=YOUR_PROJECT_KEY
 ```
 
 Replace:
 - `your-domain` with your Jira workspace subdomain
 - `your-email@company.com` with your Atlassian account email
 - `your_jira_api_token_here` with the token from step 1
+- `YOUR_PROJECT_KEY` with your Jira project key (e.g., SASS, PROJ, DEV)
 
 ### 3. Restart the Service
 
@@ -148,11 +150,11 @@ The system creates well-structured tickets with:
 
 ## Request Parameters
 
-### `meta` Object (Required)
+### `meta` Object (Optional)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `project_key` | string | Yes | Your Jira project key (e.g., "PROD", "ENG") |
+| `project_key` | string | No | Your Jira project key (e.g., "PROD", "ENG"). Uses `JIRA_PROJECT_KEY` env var if not provided |
 | `default_issue_type` | string | No | Default: "Story". Can be "Task", "Bug", "Epic", etc. |
 | `default_labels` | array | No | Default: ["feedback", "ai-insight"]. Base labels for all tickets |
 
@@ -195,7 +197,18 @@ curl -X POST http://localhost:8080/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "Show me critical security concerns"}'
 
-# Step 2: Create tickets (add meta to response)
+# Step 2: Create tickets (uses JIRA_PROJECT_KEY from env)
+curl -X POST http://localhost:8080/api/jira-tickets \
+  -H "Content-Type: application/json" \
+  -d '{
+    ...response from step 1...,
+    "meta": {
+      "default_issue_type": "Bug",
+      "default_labels": ["security", "urgent"]
+    }
+  }'
+
+# Or override the project key for a specific project:
 curl -X POST http://localhost:8080/api/jira-tickets \
   -H "Content-Type: application/json" \
   -d '{
@@ -216,13 +229,12 @@ curl -X POST http://localhost:8080/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What features are customers requesting?"}'
 
-# Step 2: Create tickets
+# Step 2: Create tickets (minimal meta required)
 curl -X POST http://localhost:8080/api/jira-tickets \
   -H "Content-Type: application/json" \
   -d '{
     ...response from step 1...,
     "meta": {
-      "project_key": "FEAT",
       "default_issue_type": "Story",
       "default_labels": ["feature-request", "customer-feedback"]
     }
@@ -249,12 +261,20 @@ You can build a workflow that:
 
 ### "Jira integration is not configured"
 
-**Solution:** Check that all three env vars are set:
+**Solution:** Check that all four env vars are set:
 ```bash
 docker compose logs api | grep -i jira
 ```
 
-Should show: `Jira integration enabled`
+Should show: `Jira integration enabled (project: YOUR_PROJECT_KEY)`
+
+If not, verify in `.env`:
+```env
+JIRA_BASE_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=your-email@company.com
+JIRA_API_TOKEN=your_token
+JIRA_PROJECT_KEY=YOUR_PROJECT_KEY
+```
 
 ### "Jira API returned status 401"
 
@@ -267,11 +287,13 @@ Should show: `Jira integration enabled`
 
 ### "Jira API returned status 404"
 
-**Problem:** Project key doesn't exist
+**Problem:** Project key doesn't exist or you don't have permission
 
 **Solution:**
 - Check the project key in Jira (it's shown in the URL and project settings)
+- Verify `JIRA_PROJECT_KEY` in `.env` matches your Jira project
 - Ensure your account has permission to create issues in that project
+- If providing `project_key` in the request, make sure it's valid
 
 ### "meta.project_key is required"
 
@@ -345,6 +367,42 @@ Should show: `Jira integration enabled`
   error: string;
 }
 ```
+
+## Production Deployment Precautions
+
+### Jira Permissions & Security
+
+**API Token Management:**
+- Create a dedicated Jira user account for API integrations
+- Use API tokens instead of passwords for authentication
+- Store tokens securely in environment variables or secret managers
+- Rotate tokens regularly and revoke unused ones
+
+**Project Access Control:**
+- Grant the integration user only necessary permissions (Create Issues, Edit Issues)
+- Limit access to specific projects only
+- Use Jira's permission schemes to restrict issue creation to approved issue types
+- Monitor API usage through Jira's audit logs
+
+**Rate Limiting & Monitoring:**
+- Jira Cloud has API rate limits (varies by plan)
+- Implement exponential backoff for failed requests
+- Monitor API usage and set up alerts for quota approaches
+- Use Jira's webhook notifications for real-time issue updates
+
+### Real-World Integration Tips
+
+**Workflow Integration:**
+- Test ticket creation in a staging Jira project first
+- Use consistent naming conventions for labels and components
+- Set up automation rules in Jira to assign tickets automatically
+- Integrate with your existing PM tools and dashboards
+
+**Data Privacy & Compliance:**
+- Ensure customer feedback data in tickets complies with privacy regulations
+- Avoid including sensitive PII in ticket descriptions
+- Use Jira's data residency controls for regional compliance
+- Implement data retention policies for created tickets
 
 ## Next Steps
 

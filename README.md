@@ -115,9 +115,11 @@ LLM_MODEL=
 
 # Jira Configuration (Optional - for creating tickets from insights)
 # Get your API token: https://id.atlassian.com/manage-profile/security/api-tokens
+# Project Key: The key of your Jira project (e.g., SASS, PROJ, DEV)
 # JIRA_BASE_URL=https://your-domain.atlassian.net
 # JIRA_EMAIL=your-email@company.com
 # JIRA_API_TOKEN=your_jira_api_token_here
+# JIRA_PROJECT_KEY=YOUR_PROJECT_KEY
 
 # Server Configuration
 PORT=8080
@@ -298,6 +300,7 @@ All configuration is managed through environment variables:
 | `JIRA_BASE_URL` | Jira Cloud base URL (optional) | No | - |
 | `JIRA_EMAIL` | Jira account email (optional) | No | - |
 | `JIRA_API_TOKEN` | Jira API token (optional) | No | - |
+| `JIRA_PROJECT_KEY` | Jira project key (optional) | No | - |
 | `PORT` | HTTP server port | No | `8080` |
 | `ENV` | Environment name | No | `development` |
 | `DEBUG` | Enable debug logging | No | `false` |
@@ -402,6 +405,32 @@ For production use, consider:
 - Implementing query timeouts
 - Adding rate limiting
 - Auditing all generated queries
+
+### Real-World Production Precautions
+
+**Database Access:**
+- Create a dedicated read-only database user for the application
+- Grant only SELECT permissions on feedback tables
+- Never use admin or write-access database credentials
+
+**API Security:**
+- Store LLM API keys in secure secret management systems
+- Use API key rotation and monitoring for unusual usage
+- Implement rate limiting to prevent API abuse
+- Enable HTTPS/TLS for all API communications
+
+**Application Hardening:**
+- Run the application in a containerized environment (Docker/Kubernetes)
+- Use non-root user for the application process
+- Implement health checks and monitoring
+- Set appropriate resource limits (CPU, memory)
+- Enable structured logging for audit trails
+
+**Data Privacy:**
+- Ensure compliance with data protection regulations (GDPR, CCPA)
+- Implement data retention policies for feedback data
+- Anonymize sensitive customer information in logs
+- Regular security audits of the codebase and dependencies
 
 ## 🐳 Docker Commands
 
