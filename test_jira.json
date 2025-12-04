@@ -1,0 +1,36 @@
+{
+  "question": "What are the most critical billing issues?",
+  "summary": "The data shows that there are billing issues related to refund processing, with a count of 2, indicating a specific area where customers are experiencing problems. This suggests that the current refund processing system may not be meeting customer needs.",
+  "recommendations": [
+    "Improve the refund processing system to reduce delays and increase transparency",
+    "Provide clearer communication to customers about the refund process and expected timelines",
+    "Consider implementing automated refund processing to reduce manual errors"
+  ],
+  "actions": [
+    {
+      "title": "Investigate Refund Processing Delays",
+      "description": "Analyze customer feedback and support tickets to identify the root causes of refund processing delays and provide recommendations for improvement",
+      "magnitude": 7.5
+    },
+    {
+      "title": "Update Refund Process Documentation",
+      "description": "Review and update the refund process documentation to ensure it is clear, concise, and accurately reflects the current process",
+      "magnitude": 4.5
+    },
+    {
+      "title": "Critical Payment Gateway Outage",
+      "description": "Emergency investigation and fix for payment gateway that is currently down affecting all transactions",
+      "magnitude": 9.5
+    },
+    {
+      "title": "Add Code Comments for Utilities",
+      "description": "Review utility functions and add helpful code comments for better maintainability",
+      "magnitude": 2.0
+    }
+  ],
+  "meta": {
+    "project_key": "SASS",
+    "default_issue_type": "Story",
+    "default_labels": ["feedback", "ai-insight", "billing"]
+  }
+}
