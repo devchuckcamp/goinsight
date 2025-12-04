@@ -4,6 +4,29 @@ GoInsight is an internal analytics tool that provides LLM-powered insights on cu
 
 **✨ NEW: Jira Integration** - Automatically convert AI-generated insights into Jira tickets! See [JIRA_INTEGRATION.md](JIRA_INTEGRATION.md) for details.
 
+## ⚠️ Production Data Structure Disclaimer
+
+**This application demonstrates LLM-powered analytics on structured customer feedback data.** In production environments, ETL (Extract, Transform, Load) data would typically be structured differently based on your organization's data warehouse schema, business requirements, and compliance needs.
+
+### Usage as Reference Implementation
+
+This project serves as a **reference architecture** for leveraging Large Language Models (LLMs) with data warehouses:
+
+- **Natural Language to SQL**: Shows how to safely convert user questions into database queries using LLM prompt engineering
+- **Insight Generation**: Demonstrates automated analysis and recommendation generation from query results
+- **API-First Design**: Illustrates building analytics APIs that combine traditional SQL with modern AI capabilities
+- **Multi-LLM Support**: Provides examples of integrating different LLM providers (OpenAI, Groq, Ollama) with fallback strategies
+- **Security-First Approach**: Implements read-only database access, query validation, and API key management best practices
+
+### Adapting for Your Data Warehouse
+
+When implementing similar functionality in production:
+- Replace the sample `feedback_enriched` table with your actual data warehouse tables
+- Modify the LLM prompts in `internal/llm/prompts.go` to match your schema and business logic
+- Implement proper authentication and authorization for your user base
+- Add data governance controls appropriate for your industry and compliance requirements
+- Consider data partitioning, caching, and performance optimization for large-scale deployments
+
 ## 🏗️ Architecture Overview
 
 The service operates in three main steps:
