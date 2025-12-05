@@ -32,9 +32,10 @@ type Config struct {
 	Env  string
 
 	// Jira
-	JiraBaseURL  string
-	JiraEmail    string
-	JiraAPIToken string
+	JiraBaseURL    string
+	JiraEmail      string
+	JiraAPIToken   string
+	JiraProjectKey string
 
 	// Debug
 	Debug bool
@@ -57,10 +58,11 @@ func Load() (*Config, error) {
 		LLMProvider:  getEnv("LLM_PROVIDER", "mock"),
 		Port:         getEnv("PORT", "8080"),
 		Env:          getEnv("ENV", "development"),
-		JiraBaseURL:  getEnv("JIRA_BASE_URL", ""),
-		JiraEmail:    getEnv("JIRA_EMAIL", ""),
-		JiraAPIToken: getEnv("JIRA_API_TOKEN", ""),
-		Debug:        getEnvBool("DEBUG", false),
+		JiraBaseURL:    getEnv("JIRA_BASE_URL", ""),
+		JiraEmail:      getEnv("JIRA_EMAIL", ""),
+		JiraAPIToken:   getEnv("JIRA_API_TOKEN", ""),
+		JiraProjectKey: getEnv("JIRA_PROJECT_KEY", ""),
+		Debug:          getEnvBool("DEBUG", false),
 	}
 
 	// Validate required fields

@@ -16,15 +16,17 @@ type Client struct {
 	baseURL    string
 	email      string
 	apiToken   string
+	projectKey string
 	httpClient *http.Client
 }
 
 // NewClient creates a new Jira API client
-func NewClient(baseURL, email, apiToken string) *Client {
+func NewClient(baseURL, email, apiToken, projectKey string) *Client {
 	return &Client{
-		baseURL:  baseURL,
-		email:    email,
-		apiToken: apiToken,
+		baseURL:    baseURL,
+		email:      email,
+		apiToken:   apiToken,
+		projectKey: projectKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -33,11 +35,17 @@ func NewClient(baseURL, email, apiToken string) *Client {
 
 // CreateIssue creates a single issue in Jira
 func (c *Client) CreateIssue(spec domain.JiraTicketSpec) (*domain.JiraCreateResponse, error) {
+	// Use project key from client if spec doesn't provide one
+	projectKey := spec.ProjectKey
+	if projectKey == "" {
+		projectKey = c.projectKey
+	}
+
 	// Convert spec to Jira API format
 	createReq := domain.JiraCreateRequest{
 		Fields: domain.JiraIssueFields{
 			Project: domain.JiraProject{
-				Key: spec.ProjectKey,
+				Key: projectKey,
 			},
 			Summary:     spec.Summary,
 			Description: spec.Description,

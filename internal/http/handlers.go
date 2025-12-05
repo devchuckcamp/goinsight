@@ -150,9 +150,10 @@ func (h *Handler) CreateJiraTickets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set defaults for meta if not provided
+	// Project key can come from request or will use the client's default
 	if req.Meta.ProjectKey == "" {
-		respondError(w, http.StatusBadRequest, "meta.project_key is required")
-		return
+		// Will be filled by Jira client from environment variable
+		req.Meta.ProjectKey = ""
 	}
 	if req.Meta.DefaultIssueType == "" {
 		req.Meta.DefaultIssueType = "Story"
