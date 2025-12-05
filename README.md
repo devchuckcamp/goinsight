@@ -289,6 +289,26 @@ curl -X POST http://localhost:8080/api/ask \
   -d '{"question": "What are enterprise customers complaining about?"}'
 ```
 
+## 🌐 Web Interface
+
+For a visual, user-friendly way to interact with GoInsight without using curl commands, check out the companion web interface:
+
+### [GoInsight Web UI](https://github.com/devchuckcamp/goinsight-webui)
+
+**Features:**
+- **Interactive Query Interface**: Ask questions in natural language with a clean web form
+- **Real-time Results**: See AI-generated insights, recommendations, and action items instantly
+- **Jira Integration**: One-click ticket creation from insights with visual feedback
+- **Response History**: Keep track of previous queries and their results
+- **Responsive Design**: Works on desktop and mobile devices
+
+**Quick Start:**
+1. Clone the web UI repository
+2. Configure it to point to your GoInsight API (default: `http://localhost:8080`)
+3. Start the web interface and begin exploring your feedback data visually
+
+The web UI provides the same functionality as the API but with a modern, intuitive interface perfect for product managers and analysts.
+
 ## 🗄️ Database Schema
 
 The `feedback_enriched` table structure:
