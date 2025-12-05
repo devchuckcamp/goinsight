@@ -38,7 +38,7 @@ The service operates in three main steps:
 ### Tech Stack
 - **Language**: Go 1.22+
 - **Database**: PostgreSQL 15
-- **HTTP Router**: Chi
+- **HTTP Router**: Chi (with CORS support for frontend integration)
 - **LLM Provider**: OpenAI (configurable interface)
 - **Containerization**: Docker & Docker Compose
 
