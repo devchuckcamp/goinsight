@@ -69,7 +69,12 @@ func (h *Handler) Ask(w http.ResponseWriter, r *http.Request) {
 	// Basic SQL safety check - ensure it's only a SELECT
 	normalizedSQL := strings.ToUpper(strings.TrimSpace(sqlQuery))
 	if !strings.HasPrefix(normalizedSQL, "SELECT") {
-		respondError(w, http.StatusBadRequest, "Generated query is not a SELECT statement")
+		respondError(w, http.StatusBadRequest, 
+			"Unable to generate a valid data query from your question. "+
+			"This API analyzes customer feedback data. "+
+			"Please ask questions about feedback, such as: "+
+			"'What are the most common billing issues?' or "+
+			"'Show me negative feedback from enterprise customers.'")
 		return
 	}
 
