@@ -1,6 +1,6 @@
 # ML Predictions Integration Guide
 
-GoInsight now integrates with **tens-insight** (TensorFlow-based ML trainer) to surface predictive account health and product-area priority signals.
+GoInsight integrates with **[tens-insight](https://github.com/devchuckcamp/tens-insight)** (TensorFlow-based ML trainer) to surface predictive account health and product-area priority signals.
 
 ## Overview
 
@@ -11,15 +11,35 @@ The ML integration provides two key capabilities:
 ## Architecture
 
 ```
-┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│  tens-insight   │────────▶│   PostgreSQL     │◀────────│   goinsight     │
-│  (ML Trainer)   │  writes │  ML Predictions  │  reads  │  (API Server)   │
-└─────────────────┘         └──────────────────┘         └─────────────────┘
-     TensorFlow                                              LLM + REST API
+┌──────────────────────────────────────────────┐
+│  tens-insight (ML Training)                  │
+│  Repository: github.com/devchuckcamp/        │
+│  tens-insight                                │
+│                                              │
+│  • TensorFlow-based ML trainer               │
+│  • Generates churn & priority predictions    │
+│  • Writes to PostgreSQL                      │
+└──────────────┬───────────────────────────────┘
+               │ Writes predictions
+               ▼
+┌──────────────────────────────────────────────┐
+│  PostgreSQL Database                         │
+│                                              │
+│  • account_risk_scores table                 │
+│  • product_area_impact table                 │
+└──────────────┬───────────────────────────────┘
+               │ Reads predictions
+               ▼
+┌──────────────────────────────────────────────┐
+│  GoInsight API (This Repository)             │
+│                                              │
+│  • /api/accounts/{id}/health                 │
+│  • /api/priorities/product-areas             │
+│  • /api/ask (LLM queries with ML data)       │
+└──────────────────────────────────────────────┘
 ```
 
-- **tens-insight**: Python/TensorFlow app that trains models and writes predictions to Postgres
-- **goinsight**: Go API that reads predictions and combines them with LLM-generated insights
+**For ML model training and tens-insight setup, see the [tens-insight repository](https://github.com/devchuckcamp/tens-insight).**
 
 ## Database Schema
 
@@ -224,16 +244,16 @@ Migrations `003_add_account_risk_scores.sql` and `004_add_product_area_impact.sq
 
 ### Testing Locally
 
-Since tens-insight populates the tables, you'll need either:
+Since [tens-insight](https://github.com/devchuckcamp/tens-insight) populates the tables, you'll need either:
 
 **Option 1: Mock Data (for development)**
 - The migrations include sample INSERT statements
 - Restart the service to reset to sample data
 
 **Option 2: Run tens-insight**
-- Set up the TensorFlow trainer locally
+- Set up the TensorFlow trainer from the [tens-insight repository](https://github.com/devchuckcamp/tens-insight)
 - Configure it to write to the same Postgres instance
-- See tens-insight documentation for setup
+- See tens-insight documentation for setup instructions
 
 ### Monitoring
 
@@ -314,9 +334,10 @@ curl -X POST http://localhost:8080/api/ask \
 **Problem**: `predicted_at` timestamps are old
 
 **Solutions**:
-- Check tens-insight scheduler/cron configuration
+- Check the [tens-insight](https://github.com/devchuckcamp/tens-insight) scheduler/cron configuration
 - Verify tens-insight has access to feedback data
 - Review tens-insight logs for errors
+- See tens-insight repository for model training troubleshooting
 
 ### LLM not using ML tables
 
@@ -340,7 +361,7 @@ curl -X POST http://localhost:8080/api/ask \
 - [JIRA_INTEGRATION.md](JIRA_INTEGRATION.md) - Creating tickets from insights
 - [FREE_LLM_GUIDE.md](FREE_LLM_GUIDE.md) - LLM provider setup
 - [EXAMPLES.md](EXAMPLES.md) - More API examples
-- tens-insight README - ML trainer setup (separate repo)
+- **[tens-insight](https://github.com/devchuckcamp/tens-insight)** - ML trainer repository (model training, setup, and configuration)
 
 ---
 

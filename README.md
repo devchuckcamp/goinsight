@@ -2,7 +2,7 @@
 
 GoInsight is an internal analytics tool that provides LLM-powered insights on customer feedback data. Product managers can ask natural language questions about customer feedback, and the service generates SQL queries, analyzes the data, and returns actionable insights with recommendations and suggested action items.
 
-**✨ NEW: ML Predictions Integration** - Surface predictive account health and product-area priority signals from TensorFlow models! See [ML_PREDICTIONS.md](ML_PREDICTIONS.md) for details.
+**✨ NEW: ML Predictions Integration** - Surface predictive account health and product-area priority signals from TensorFlow models trained by [tens-insight](https://github.com/devchuckcamp/tens-insight)! See [ML_PREDICTIONS.md](ML_PREDICTIONS.md) for details.
 
 **✨ NEW: Jira Integration** - Automatically convert AI-generated insights into Jira tickets! See [JIRA_INTEGRATION.md](JIRA_INTEGRATION.md) for details.
 
@@ -39,10 +39,12 @@ The service operates in three main steps:
 
 ### ML Integration
 
-GoInsight integrates with **tens-insight** (TensorFlow-based ML trainer) to provide:
+GoInsight integrates with **[tens-insight](https://github.com/devchuckcamp/tens-insight)** (TensorFlow-based ML trainer) to provide:
 - **Account Churn Risk**: Predict which accounts are likely to churn
 - **Product Area Priorities**: Identify high-impact areas by customer segment
 - **Combined Analysis**: LLM queries can join feedback data with ML predictions for deeper insights
+
+**For ML setup and model training details, see the [tens-insight repository](https://github.com/devchuckcamp/tens-insight).**
 
 ### Tech Stack
 - **Language**: Go 1.22+
@@ -349,6 +351,16 @@ curl -X POST http://localhost:8080/api/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "What are enterprise customers complaining about?"}'
 ```
+
+## 🌐 Related Projects
+
+### [tens-insight](https://github.com/devchuckcamp/tens-insight) - ML Prediction Engine
+
+**TensorFlow-based ML trainer that generates account churn predictions and product area priorities.**
+
+The ML predictions are written to PostgreSQL and consumed by GoInsight's `/api/accounts/{id}/health` and `/api/priorities/product-areas` endpoints. See [ML_PREDICTIONS.md](ML_PREDICTIONS.md) for integration details and workflow.
+
+---
 
 ## 🌐 Web Interface
 
