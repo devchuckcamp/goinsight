@@ -12,6 +12,7 @@ import (
 	"github.com/chuckie/goinsight/internal/domain"
 	"github.com/chuckie/goinsight/internal/jira"
 	"github.com/chuckie/goinsight/internal/llm"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler holds dependencies for HTTP handlers
@@ -98,8 +99,19 @@ func (h *Handler) Ask(w http.ResponseWriter, r *http.Request) {
 	// Step 2: Execute the SQL query
 	queryResults, err := h.dbClient.ExecuteQuery(sqlQuery)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to execute query: %v", err))
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Query execution failed: %v. SQL was: %s", err, sqlQuery))
 		return
+	}
+
+	// Log the columns returned for debugging
+	if len(queryResults) > 0 {
+		var cols []string
+		for col := range queryResults[0] {
+			cols = append(cols, col)
+		}
+		fmt.Printf("DEBUG: Query returned %d rows with columns: %v\n", len(queryResults), cols)
+	} else {
+		fmt.Printf("DEBUG: Query returned 0 rows. SQL was: %s\n", sqlQuery)
 	}
 
 	// Step 3: Generate insights from the results
@@ -125,6 +137,7 @@ func (h *Handler) Ask(w http.ResponseWriter, r *http.Request) {
 
 	response := domain.AskResponse{
 		Question:        req.Question,
+		SQL:             sqlQuery,
 		DataPreview:     dataPreview,
 		Summary:         insightResult.Summary,
 		Recommendations: insightResult.Recommendations,
@@ -240,7 +253,7 @@ func respondError(w http.ResponseWriter, status int, message string) {
 // GET /api/accounts/{id}/health
 func (h *Handler) GetAccountHealth(w http.ResponseWriter, r *http.Request) {
 	// Extract account ID from URL path
-	accountID := r.PathValue("id")
+	accountID := chi.URLParam(r, "id")
 	if accountID == "" {
 		respondError(w, http.StatusBadRequest, "Account ID is required")
 		return

@@ -23,11 +23,12 @@ type AskRequest struct {
 
 // AskResponse represents the final response from /api/ask
 type AskResponse struct {
-	Question     string              `json:"question"`
-	DataPreview  []map[string]any    `json:"data_preview"`
-	Summary      string              `json:"summary"`
-	Recommendations []string         `json:"recommendations"`
-	Actions      []ActionItem        `json:"actions"`
+	Question        string              `json:"question"`
+	SQL             string              `json:"sql,omitempty"`
+	DataPreview     []map[string]any    `json:"data_preview"`
+	Summary         string              `json:"summary"`
+	Recommendations []string            `json:"recommendations"`
+	Actions         []ActionItem        `json:"actions"`
 }
 
 // ActionItem represents a proposed action/ticket

@@ -92,11 +92,17 @@ func (c *Client) ExecuteQuery(query string) ([]map[string]any, error) {
 		for i, col := range columns {
 			val := values[i]
 
-			// Convert []byte to string for better JSON serialization
-			if b, ok := val.([]byte); ok {
-				row[col] = string(b)
-			} else {
-				row[col] = val
+			// Handle different data types for better JSON serialization
+			switch v := val.(type) {
+			case []byte:
+				// Convert byte arrays to strings
+				row[col] = string(v)
+			case nil:
+				// Keep null values as nil (will serialize to null in JSON)
+				row[col] = nil
+			default:
+				// Keep all other types as-is
+				row[col] = v
 			}
 		}
 

@@ -12,6 +12,7 @@ IMPORTANT RULES:
 3. Use parameterized queries or proper escaping
 4. Return ONLY the SQL query, no explanations or markdown formatting
 5. If the question is unclear, make reasonable assumptions but stay conservative
+6. **CRITICAL**: Always select ALL relevant columns from the query tables, not just a subset. This ensures data completeness in results.
 
 AVAILABLE TABLES:
 
@@ -53,21 +54,32 @@ product_area_impact(
 
 QUERY PATTERNS:
 
-For churn/risk questions:
+For churn/risk questions (query account_risk_scores with most relevant feedback context):
 User: "Which enterprise accounts are at highest churn risk?"
-SQL: SELECT account_id, churn_probability, health_score, risk_category FROM account_risk_scores WHERE risk_category IN ('high', 'critical') AND account_id LIKE '%ent%' ORDER BY churn_probability DESC LIMIT 20;
+SQL: SELECT DISTINCT a.account_id, a.churn_probability, a.health_score, a.risk_category, f.id, f.created_at, f.source, f.product_area, f.sentiment, f.priority, f.topic, f.region, f.customer_tier, f.summary FROM account_risk_scores a LEFT JOIN feedback_enriched f ON LOWER(f.customer_tier) = LOWER(a.account_id) WHERE a.risk_category IN ('high', 'critical') ORDER BY a.churn_probability DESC LIMIT 20;
 
 For product prioritization:
 User: "What top 3 product areas should we prioritize for SMB accounts?"
-SQL: SELECT product_area, priority_score, feedback_count, negative_count FROM product_area_impact WHERE segment = 'smb' ORDER BY priority_score DESC LIMIT 3;
+SQL: SELECT product_area, segment, priority_score, feedback_count, avg_sentiment_score, negative_count, critical_count FROM product_area_impact WHERE segment = 'smb' ORDER BY priority_score DESC LIMIT 3;
 
-For combined analysis:
+For combined analysis (feedback + risk with all details):
 User: "Show feedback themes from high-risk accounts"
-SQL: SELECT f.product_area, f.topic, COUNT(*) as count FROM feedback_enriched f JOIN account_risk_scores a ON f.customer_tier LIKE '%' || a.account_id || '%' WHERE a.risk_category IN ('high', 'critical') GROUP BY f.product_area, f.topic ORDER BY count DESC LIMIT 10;
+SQL: SELECT f.id, f.created_at, f.source, f.product_area, f.sentiment, f.priority, f.topic, f.region, f.customer_tier, f.summary, a.account_id, a.churn_probability, a.risk_category FROM feedback_enriched f INNER JOIN account_risk_scores a ON LOWER(f.customer_tier) = LOWER(a.account_id) WHERE a.risk_category IN ('high', 'critical') ORDER BY f.created_at DESC LIMIT 20;
 
-For feedback questions:
+For feedback questions (ALWAYS include all columns from feedback_enriched):
 User: "What are the most common billing issues?"
-SQL: SELECT topic, COUNT(*) as count FROM feedback_enriched WHERE product_area = 'billing' GROUP BY topic ORDER BY count DESC LIMIT 10;`
+SQL: SELECT id, created_at, source, product_area, sentiment, priority, topic, region, customer_tier, summary FROM feedback_enriched WHERE product_area = 'billing' ORDER BY created_at DESC LIMIT 20;
+
+For churn + product area analysis:
+User: "What product areas are causing the highest churn?"
+SQL: SELECT a.account_id, a.churn_probability, a.health_score, a.risk_category, f.product_area, COUNT(f.id) as feedback_count, AVG(CASE WHEN f.sentiment = 'negative' THEN 1 ELSE 0 END) as negative_ratio FROM account_risk_scores a LEFT JOIN feedback_enriched f ON LOWER(f.customer_tier) = LOWER(a.account_id) WHERE a.risk_category IN ('high', 'critical') GROUP BY a.account_id, a.churn_probability, a.health_score, a.risk_category, f.product_area ORDER BY a.churn_probability DESC LIMIT 20;
+
+IMPORTANT GUIDELINES:
+- For account_risk_scores queries: Always LEFT JOIN with feedback_enriched to include all feedback context (product_area, sentiment, priority, topic, region, summary, source, created_at)
+- Include ALL feedback_enriched columns when joining: id, created_at, source, product_area, sentiment, priority, topic, region, customer_tier, summary
+- Use DISTINCT when joining to avoid duplicate account rows
+- Optimize with GROUP BY when aggregating feedback metrics
+- Always order by most relevant metric (churn_probability for risk, priority_score for prioritization, created_at DESC for recency)`
 }
 
 // InsightGenerationPrompt returns the system prompt for insight generation
