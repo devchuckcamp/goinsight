@@ -8,12 +8,12 @@ func SQLGenerationPrompt() string {
 
 IMPORTANT RULES:
 1. Only generate SELECT queries - never INSERT, UPDATE, DELETE, DROP, or any DDL/DML
-2. Only query the 'feedback_enriched' table
+2. Only query these tables: 'feedback_enriched', 'account_risk_scores', 'product_area_impact'
 3. Use parameterized queries or proper escaping
 4. Return ONLY the SQL query, no explanations or markdown formatting
 5. If the question is unclear, make reasonable assumptions but stay conservative
 
-The table schema is:
+AVAILABLE TABLES:
 
 feedback_enriched(
   id            TEXT,
@@ -28,15 +28,46 @@ feedback_enriched(
   summary       TEXT         -- short summary of feedback
 );
 
-Examples:
+account_risk_scores(
+  account_id         VARCHAR,  -- unique account identifier
+  churn_probability  FLOAT,    -- predicted churn probability (0-1)
+  health_score       FLOAT,    -- account health score (0-100, higher is better)
+  risk_category      VARCHAR,  -- 'low', 'medium', 'high', 'critical'
+  predicted_at       TIMESTAMPTZ,
+  model_version      VARCHAR   -- ML model version used for prediction
+);
+-- Use for: churn risk, account health, at-risk customers
+
+product_area_impact(
+  product_area        VARCHAR,  -- e.g. 'billing', 'onboarding', 'performance'
+  segment             VARCHAR,  -- e.g. 'enterprise', 'smb', 'pro'
+  priority_score      FLOAT,    -- priority score (0-100, higher = more important)
+  feedback_count      INT,      -- total feedback volume
+  avg_sentiment_score FLOAT,    -- average sentiment (-1 to 1, negative to positive)
+  negative_count      INT,      -- count of negative feedback
+  critical_count      INT,      -- count of critical priority feedback
+  predicted_at        TIMESTAMPTZ,
+  model_version       VARCHAR
+);
+-- Use for: product area prioritization, impact analysis, segment-specific insights
+
+QUERY PATTERNS:
+
+For churn/risk questions:
+User: "Which enterprise accounts are at highest churn risk?"
+SQL: SELECT account_id, churn_probability, health_score, risk_category FROM account_risk_scores WHERE risk_category IN ('high', 'critical') AND account_id LIKE '%ent%' ORDER BY churn_probability DESC LIMIT 20;
+
+For product prioritization:
+User: "What top 3 product areas should we prioritize for SMB accounts?"
+SQL: SELECT product_area, priority_score, feedback_count, negative_count FROM product_area_impact WHERE segment = 'smb' ORDER BY priority_score DESC LIMIT 3;
+
+For combined analysis:
+User: "Show feedback themes from high-risk accounts"
+SQL: SELECT f.product_area, f.topic, COUNT(*) as count FROM feedback_enriched f JOIN account_risk_scores a ON f.customer_tier LIKE '%' || a.account_id || '%' WHERE a.risk_category IN ('high', 'critical') GROUP BY f.product_area, f.topic ORDER BY count DESC LIMIT 10;
+
+For feedback questions:
 User: "What are the most common billing issues?"
-SQL: SELECT topic, COUNT(*) as count FROM feedback_enriched WHERE product_area = 'billing' GROUP BY topic ORDER BY count DESC LIMIT 10;
-
-User: "Show me critical feedback from enterprise customers"
-SQL: SELECT * FROM feedback_enriched WHERE priority >= 4 AND customer_tier = 'enterprise' ORDER BY created_at DESC LIMIT 20;
-
-User: "What's the sentiment distribution for onboarding?"
-SQL: SELECT sentiment, COUNT(*) as count FROM feedback_enriched WHERE product_area = 'onboarding' GROUP BY sentiment;`
+SQL: SELECT topic, COUNT(*) as count FROM feedback_enriched WHERE product_area = 'billing' GROUP BY topic ORDER BY count DESC LIMIT 10;`
 }
 
 // InsightGenerationPrompt returns the system prompt for insight generation

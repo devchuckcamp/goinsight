@@ -114,3 +114,59 @@ func (c *Client) ExecuteQuery(query string) ([]map[string]any, error) {
 func (c *Client) HealthCheck() error {
 	return c.db.Ping()
 }
+
+// GetAccountRiskScore retrieves ML predictions for a specific account
+func (c *Client) GetAccountRiskScore(accountID string) (*sql.Row, error) {
+	query := `
+		SELECT account_id, churn_probability, health_score, risk_category, predicted_at, model_version
+		FROM account_risk_scores
+		WHERE account_id = $1
+	`
+	return c.db.QueryRow(query, accountID), nil
+}
+
+// GetRecentNegativeFeedbackCount counts recent negative feedback for an account
+// Note: This assumes feedback_enriched has an account_id column that needs to be added
+func (c *Client) GetRecentNegativeFeedbackCount(accountID string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM feedback_enriched
+		WHERE customer_tier LIKE '%' || $1 || '%'
+		AND sentiment = 'negative'
+		AND created_at > NOW() - INTERVAL '30 days'
+	`
+	var count int
+	err := c.db.QueryRow(query, accountID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count negative feedback: %w", err)
+	}
+	return count, nil
+}
+
+// GetProductAreaImpacts retrieves ML predictions for product area priorities
+func (c *Client) GetProductAreaImpacts(segment string) ([]map[string]any, error) {
+	var query string
+	var args []any
+
+	if segment != "" {
+		query = `
+			SELECT product_area, segment, priority_score, feedback_count, 
+			       avg_sentiment_score, negative_count, critical_count, 
+			       predicted_at, model_version
+			FROM product_area_impact
+			WHERE segment = $1
+			ORDER BY priority_score DESC
+		`
+		args = append(args, segment)
+	} else {
+		query = `
+			SELECT product_area, segment, priority_score, feedback_count,
+			       avg_sentiment_score, negative_count, critical_count,
+			       predicted_at, model_version
+			FROM product_area_impact
+			ORDER BY priority_score DESC
+		`
+	}
+
+	return c.ExecuteQuery(query)
+}

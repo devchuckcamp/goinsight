@@ -43,3 +43,42 @@ type InsightResult struct {
 	Recommendations []string     `json:"recommendations"`
 	Actions         []ActionItem `json:"actions"`
 }
+
+// AccountRiskScore represents ML-based churn predictions for an account (from tens-insight)
+type AccountRiskScore struct {
+	AccountID        string    `json:"account_id"`
+	ChurnProbability float64   `json:"churn_probability"`
+	HealthScore      float64   `json:"health_score"`
+	RiskCategory     string    `json:"risk_category"`
+	PredictedAt      time.Time `json:"predicted_at"`
+	ModelVersion     string    `json:"model_version"`
+}
+
+// ProductAreaImpact represents ML-based priority signals for product areas (from tens-insight)
+type ProductAreaImpact struct {
+	ProductArea       string    `json:"product_area"`
+	Segment           string    `json:"segment"`
+	PriorityScore     float64   `json:"priority_score"`
+	FeedbackCount     int       `json:"feedback_count"`
+	AvgSentimentScore float64   `json:"avg_sentiment_score"`
+	NegativeCount     int       `json:"negative_count"`
+	CriticalCount     int       `json:"critical_count"`
+	PredictedAt       time.Time `json:"predicted_at"`
+	ModelVersion      string    `json:"model_version"`
+}
+
+// AccountHealthResponse is the response for GET /api/accounts/{id}/health
+type AccountHealthResponse struct {
+	AccountID           string  `json:"account_id"`
+	ChurnProbability    float64 `json:"churn_probability"`
+	HealthScore         float64 `json:"health_score"`
+	RiskCategory        string  `json:"risk_category"`
+	RecentNegativeCount int     `json:"recent_negative_feedback_count"`
+	PredictedAt         string  `json:"predicted_at"`
+	ModelVersion        string  `json:"model_version"`
+}
+
+// ProductAreaPriorityResponse is the response for GET /api/priorities/product-areas
+type ProductAreaPriorityResponse struct {
+	ProductAreas []ProductAreaImpact `json:"product_areas"`
+}

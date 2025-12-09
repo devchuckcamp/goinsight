@@ -30,6 +30,10 @@ func NewRouter(h *Handler) *chi.Mux {
 	r.Get("/api/health", h.HealthCheck)
 	r.Post("/api/ask", h.Ask)
 	r.Post("/api/jira-tickets", h.CreateJiraTickets)
+	
+	// ML prediction endpoints
+	r.Get("/api/accounts/{id}/health", h.GetAccountHealth)
+	r.Get("/api/priorities/product-areas", h.GetProductAreaPriorities)
 
 	return r
 }

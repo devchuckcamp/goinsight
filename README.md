@@ -2,6 +2,8 @@
 
 GoInsight is an internal analytics tool that provides LLM-powered insights on customer feedback data. Product managers can ask natural language questions about customer feedback, and the service generates SQL queries, analyzes the data, and returns actionable insights with recommendations and suggested action items.
 
+**✨ NEW: ML Predictions Integration** - Surface predictive account health and product-area priority signals from TensorFlow models! See [ML_PREDICTIONS.md](ML_PREDICTIONS.md) for details.
+
 **✨ NEW: Jira Integration** - Automatically convert AI-generated insights into Jira tickets! See [JIRA_INTEGRATION.md](JIRA_INTEGRATION.md) for details.
 
 ## ⚠️ Production Data Structure Disclaimer
@@ -32,8 +34,15 @@ When implementing similar functionality in production:
 The service operates in three main steps:
 
 1. **SQL Generation**: Converts natural language questions into safe SQL SELECT queries
-2. **Data Retrieval**: Executes queries against a Postgres database containing structured feedback
+2. **Data Retrieval**: Executes queries against a Postgres database containing structured feedback and ML predictions
 3. **Insight Generation**: Uses an LLM to analyze results and produce summaries, recommendations, and action items
+
+### ML Integration
+
+GoInsight integrates with **tens-insight** (TensorFlow-based ML trainer) to provide:
+- **Account Churn Risk**: Predict which accounts are likely to churn
+- **Product Area Priorities**: Identify high-impact areas by customer segment
+- **Combined Analysis**: LLM queries can join feedback data with ML predictions for deeper insights
 
 ### Tech Stack
 - **Language**: Go 1.22+
@@ -199,6 +208,58 @@ curl http://localhost:8080/api/health
   "status": "healthy"
 }
 ```
+
+### ML Prediction Endpoints (NEW!)
+
+#### Get Account Health
+Returns ML-based churn risk and health metrics for a specific account.
+
+```bash
+curl http://localhost:8080/api/accounts/acc_ent_001/health
+```
+
+**Response:**
+```json
+{
+  "account_id": "acc_ent_001",
+  "churn_probability": 0.78,
+  "health_score": 32.0,
+  "risk_category": "high",
+  "recent_negative_feedback_count": 5,
+  "predicted_at": "2025-12-08T10:30:00Z",
+  "model_version": "v1.2.3"
+}
+```
+
+#### Get Product Area Priorities
+Returns ML-based priority scores for product areas (optionally filtered by segment).
+
+```bash
+# All segments
+curl http://localhost:8080/api/priorities/product-areas
+
+# Filter by segment
+curl http://localhost:8080/api/priorities/product-areas?segment=enterprise
+```
+
+**Response:**
+```json
+{
+  "product_areas": [
+    {
+      "product_area": "billing",
+      "segment": "enterprise",
+      "priority_score": 92.5,
+      "feedback_count": 145,
+      "avg_sentiment_score": -0.65,
+      "negative_count": 98,
+      "critical_count": 34
+    }
+  ]
+}
+```
+
+See [ML_PREDICTIONS.md](ML_PREDICTIONS.md) for detailed documentation and examples.
 
 ### Create Jira Tickets (NEW!)
 

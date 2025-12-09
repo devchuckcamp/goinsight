@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/chuckie/goinsight/internal/db"
 	"github.com/chuckie/goinsight/internal/domain"
@@ -233,4 +234,98 @@ func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, map[string]string{
 		"error": message,
 	})
+}
+
+// GetAccountHealth returns ML-based health and risk metrics for a specific account
+// GET /api/accounts/{id}/health
+func (h *Handler) GetAccountHealth(w http.ResponseWriter, r *http.Request) {
+	// Extract account ID from URL path
+	accountID := r.PathValue("id")
+	if accountID == "" {
+		respondError(w, http.StatusBadRequest, "Account ID is required")
+		return
+	}
+
+	// Query account risk score
+	row, err := h.dbClient.GetAccountRiskScore(accountID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to query account: %v", err))
+		return
+	}
+
+	var risk domain.AccountRiskScore
+	err = row.Scan(
+		&risk.AccountID,
+		&risk.ChurnProbability,
+		&risk.HealthScore,
+		&risk.RiskCategory,
+		&risk.PredictedAt,
+		&risk.ModelVersion,
+	)
+	if err != nil {
+		respondError(w, http.StatusNotFound, fmt.Sprintf("Account not found: %s", accountID))
+		return
+	}
+
+	// Get recent negative feedback count
+	negativeCount, err := h.dbClient.GetRecentNegativeFeedbackCount(accountID)
+	if err != nil {
+		// Log error but don't fail the request
+		negativeCount = 0
+	}
+
+	// Build response
+	response := domain.AccountHealthResponse{
+		AccountID:           risk.AccountID,
+		ChurnProbability:    risk.ChurnProbability,
+		HealthScore:         risk.HealthScore,
+		RiskCategory:        risk.RiskCategory,
+		RecentNegativeCount: negativeCount,
+		PredictedAt:         risk.PredictedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ModelVersion:        risk.ModelVersion,
+	}
+
+	respondJSON(w, http.StatusOK, response)
+}
+
+// GetProductAreaPriorities returns ML-based priority scores for product areas
+// GET /api/priorities/product-areas?segment=enterprise
+func (h *Handler) GetProductAreaPriorities(w http.ResponseWriter, r *http.Request) {
+	// Get optional segment filter from query params
+	segment := r.URL.Query().Get("segment")
+
+	// Query product area impacts
+	results, err := h.dbClient.GetProductAreaImpacts(segment)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to query priorities: %v", err))
+		return
+	}
+
+	// Convert results to domain objects
+	var impacts []domain.ProductAreaImpact
+	for _, row := range results {
+		impact := domain.ProductAreaImpact{
+			ProductArea:       row["product_area"].(string),
+			Segment:           row["segment"].(string),
+			PriorityScore:     row["priority_score"].(float64),
+			FeedbackCount:     int(row["feedback_count"].(int64)),
+			AvgSentimentScore: row["avg_sentiment_score"].(float64),
+			NegativeCount:     int(row["negative_count"].(int64)),
+			CriticalCount:     int(row["critical_count"].(int64)),
+			ModelVersion:      row["model_version"].(string),
+		}
+		
+		// Parse timestamp
+		if predictedAt, ok := row["predicted_at"].(string); ok {
+			impact.PredictedAt, _ = time.Parse("2006-01-02T15:04:05Z07:00", predictedAt)
+		}
+		
+		impacts = append(impacts, impact)
+	}
+
+	response := domain.ProductAreaPriorityResponse{
+		ProductAreas: impacts,
+	}
+
+	respondJSON(w, http.StatusOK, response)
 }
