@@ -50,7 +50,11 @@ func (qb *QueryBuilder) Where(condition string) *QueryBuilder {
 
 // WhereParam adds a WHERE condition with a parameterized value
 func (qb *QueryBuilder) WhereParam(condition string, value any) *QueryBuilder {
-	if condition != "" && value != nil {
+	if condition != "" {
+		// Check for empty string values
+		if strVal, ok := value.(string); ok && strVal == "" {
+			return qb
+		}
 		qb.params = append(qb.params, value)
 		paramPlaceholder := fmt.Sprintf("$%d", len(qb.params))
 		qb.whereClauses = append(qb.whereClauses, fmt.Sprintf(condition, paramPlaceholder))
