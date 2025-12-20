@@ -115,8 +115,12 @@ func (s *FeedbackService) validateSQL(sqlQuery string) error {
 	}
 
 	for _, pattern := range dangerous {
-		matched, _ := regexp.MatchString(pattern, normalizedSQL)
-		if matched {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return fmt.Errorf("internal error compiling SQL validation pattern: %w", err)
+		}
+
+		if re.MatchString(normalizedSQL) {
 			return fmt.Errorf("generated query contains forbidden SQL statement")
 		}
 	}
