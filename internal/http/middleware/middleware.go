@@ -45,10 +45,16 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 func TimingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
+		
+		// Wrap response writer to set timing header before response is written
+		wrapped := &timingResponseWriter{
+			ResponseWriter: w,
+			start:          start,
+		}
+		
+		next.ServeHTTP(wrapped, r)
+		
 		duration := time.Since(start)
-
-		w.Header().Set("X-Response-Time", duration.String())
 		log.Printf("Request %s completed in %v", r.RequestURI, duration)
 	})
 }
@@ -104,6 +110,29 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 		rw.WriteHeader(http.StatusOK)
 	}
 	return rw.ResponseWriter.Write(b)
+}
+
+// timingResponseWriter wraps http.ResponseWriter to set timing header before response is written
+type timingResponseWriter struct {
+	http.ResponseWriter
+	start   time.Time
+	written bool
+}
+
+func (trw *timingResponseWriter) WriteHeader(code int) {
+	if !trw.written {
+		duration := time.Since(trw.start)
+		trw.ResponseWriter.Header().Set("X-Response-Time", duration.String())
+		trw.written = true
+		trw.ResponseWriter.WriteHeader(code)
+	}
+}
+
+func (trw *timingResponseWriter) Write(b []byte) (int, error) {
+	if !trw.written {
+		trw.WriteHeader(http.StatusOK)
+	}
+	return trw.ResponseWriter.Write(b)
 }
 
 // QueryExecutionDecorator measures query execution performance
