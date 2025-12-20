@@ -163,7 +163,59 @@ func (r *PostgresFeedbackRepository) GetProductAreaImpacts(ctx context.Context, 
 		`
 	}
 
-	return r.QueryFeedback(ctx, query)
+	// Execute query with parameters
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query execution failed: %w", err)
+	}
+	defer rows.Close()
+
+	// Get column names
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Prepare result slice
+	var results []map[string]any
+
+	for rows.Next() {
+		// Create a slice of interface{} to hold each column value
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		// Scan the row into the value pointers
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Create a map for this row
+		row := make(map[string]any)
+		for i, col := range columns {
+			val := values[i]
+
+			// Handle different data types for better JSON serialization
+			switch v := val.(type) {
+			case []byte:
+				row[col] = string(v)
+			case nil:
+				row[col] = nil
+			default:
+				row[col] = v
+			}
+		}
+
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return results, nil
 }
 
 // GetFeedbackEnrichedCount returns the total count of enriched feedback records
