@@ -131,6 +131,9 @@ migrations/*.log
 *.iws
 .idea_modules/
 
+#agent
+agent.*
+
 # VSCode
 .vscode/*
 !.vscode/settings.json

@@ -571,6 +571,17 @@ docker compose down -v  # Removes volumes
 docker compose up --build
 ```
 
+## 🚀 Future Features
+
+Interested in what's coming next? Check out our [Future Features & Roadmap](FUTURE_FEATURES.md) document to see:
+- Planned enhancements and new capabilities
+- Advanced ML integrations with tens-insight
+- Multi-source feedback aggregation
+- Enhanced dashboards and alerting
+- Enterprise features and scalability improvements
+
+Have a feature request? Open an issue or see the [FUTURE_FEATURES.md](FUTURE_FEATURES.md) for how to contribute!
+
 ## 📝 Notes
 
 - The seed data includes 33 diverse feedback records covering billing, onboarding, performance, features, security, UI/UX, and integrations
