@@ -59,6 +59,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("PANIC: %v", err)
+				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{"error":"Internal server error"}`))
 			}
