@@ -141,14 +141,14 @@ query := builder.NewQueryBuilder().
     Limit(10).
     Build()
 
-// Specialized feedback builder
-fbQuery := builder.NewFeedbackQueryBuilder().
+// Specialized feedback builder with parameterized queries
+fbQuery, params := builder.NewFeedbackQueryBuilder().
     WithSentiment("negative").
     WithProductArea("billing").
     WithMinPriority(3).
     OrderBy("created_at", "DESC").
     Limit(20).
-    BuildFeedback()
+    BuildFeedbackWithParams()
 ```
 
 ---

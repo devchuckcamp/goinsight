@@ -13,6 +13,7 @@ type QueryBuilder struct {
 	orderByClauses []string
 	limitValue     int
 	offsetValue    int
+	params         []any // Parameters for parameterized queries
 }
 
 // NewQueryBuilder creates a new query builder instance
@@ -23,6 +24,7 @@ func NewQueryBuilder() *QueryBuilder {
 		orderByClauses: []string{},
 		limitValue:     0,
 		offsetValue:    0,
+		params:         []any{},
 	}
 }
 
@@ -42,6 +44,16 @@ func (qb *QueryBuilder) From(table string) *QueryBuilder {
 func (qb *QueryBuilder) Where(condition string) *QueryBuilder {
 	if condition != "" {
 		qb.whereClauses = append(qb.whereClauses, condition)
+	}
+	return qb
+}
+
+// WhereParam adds a WHERE condition with a parameterized value
+func (qb *QueryBuilder) WhereParam(condition string, value any) *QueryBuilder {
+	if condition != "" && value != nil {
+		qb.params = append(qb.params, value)
+		paramPlaceholder := fmt.Sprintf("$%d", len(qb.params))
+		qb.whereClauses = append(qb.whereClauses, fmt.Sprintf(condition, paramPlaceholder))
 	}
 	return qb
 }
@@ -78,6 +90,12 @@ func (qb *QueryBuilder) Offset(offset int) *QueryBuilder {
 
 // Build constructs and returns the final SQL query string
 func (qb *QueryBuilder) Build() string {
+	query, _ := qb.BuildWithParams()
+	return query
+}
+
+// BuildWithParams constructs and returns the final SQL query string with parameters
+func (qb *QueryBuilder) BuildWithParams() (string, []any) {
 	var query strings.Builder
 
 	// SELECT clause
@@ -90,7 +108,7 @@ func (qb *QueryBuilder) Build() string {
 
 	// FROM clause
 	if qb.fromClause == "" {
-		return "" // Invalid query without FROM
+		return "", nil // Invalid query without FROM
 	}
 	query.WriteString("\nFROM ")
 	query.WriteString(qb.fromClause)
@@ -117,7 +135,7 @@ func (qb *QueryBuilder) Build() string {
 		query.WriteString(fmt.Sprintf("\nOFFSET %d", qb.offsetValue))
 	}
 
-	return query.String()
+	return query.String(), qb.params
 }
 
 // Reset clears all builder state for reuse
@@ -128,6 +146,7 @@ func (qb *QueryBuilder) Reset() *QueryBuilder {
 	qb.orderByClauses = []string{}
 	qb.limitValue = 0
 	qb.offsetValue = 0
+	qb.params = []any{}
 	return qb
 }
 
@@ -152,7 +171,7 @@ func NewFeedbackQueryBuilder() *FeedbackQueryBuilder {
 func (fqb *FeedbackQueryBuilder) WithSentiment(sentiment string) *FeedbackQueryBuilder {
 	fqb.sentiment = sentiment
 	if sentiment != "" {
-		fqb.Where(fmt.Sprintf("sentiment = '%s'", sentiment))
+		fqb.WhereParam("sentiment = %s", sentiment)
 	}
 	return fqb
 }
@@ -161,7 +180,7 @@ func (fqb *FeedbackQueryBuilder) WithSentiment(sentiment string) *FeedbackQueryB
 func (fqb *FeedbackQueryBuilder) WithProductArea(area string) *FeedbackQueryBuilder {
 	fqb.productArea = area
 	if area != "" {
-		fqb.Where(fmt.Sprintf("product_area = '%s'", area))
+		fqb.WhereParam("product_area = %s", area)
 	}
 	return fqb
 }
@@ -170,7 +189,7 @@ func (fqb *FeedbackQueryBuilder) WithProductArea(area string) *FeedbackQueryBuil
 func (fqb *FeedbackQueryBuilder) WithRegion(region string) *FeedbackQueryBuilder {
 	fqb.region = region
 	if region != "" {
-		fqb.Where(fmt.Sprintf("region = '%s'", region))
+		fqb.WhereParam("region = %s", region)
 	}
 	return fqb
 }
@@ -190,4 +209,12 @@ func (fqb *FeedbackQueryBuilder) BuildFeedback() string {
 		fqb.From("feedback_enriched")
 	}
 	return fqb.Build()
+}
+
+// BuildFeedbackWithParams returns the SQL query string and parameters with default feedback table
+func (fqb *FeedbackQueryBuilder) BuildFeedbackWithParams() (string, []any) {
+	if fqb.fromClause == "" {
+		fqb.From("feedback_enriched")
+	}
+	return fqb.BuildWithParams()
 }

@@ -54,15 +54,16 @@ Incremental SQL query construction with readable, chainable API.
 - `QueryBuilder` - General-purpose SQL builder
 - `FeedbackQueryBuilder` - Specialized for feedback queries
 - Support for SELECT, FROM, WHERE, ORDER BY, LIMIT, OFFSET
+- Parameterized queries to prevent SQL injection
 
 **Example**:
 ```go
-query := builder.NewFeedbackQueryBuilder().
+query, params := builder.NewFeedbackQueryBuilder().
     WithSentiment("negative").
     WithProductArea("billing").
     OrderBy("priority", "DESC").
     Limit(20).
-    BuildFeedback()
+    BuildFeedbackWithParams()
 ```
 
 ---
@@ -223,12 +224,12 @@ handler := http.NewServiceHandler(service, jiraClient)
 
 ### Building Queries
 ```go
-query := builder.NewFeedbackQueryBuilder().
+query, params := builder.NewFeedbackQueryBuilder().
     WithSentiment("negative").
     WithProductArea("billing").
     OrderBy("priority", "DESC").
     Limit(10).
-    BuildFeedback()
+    BuildFeedbackWithParams()
 ```
 
 ### Using Middleware

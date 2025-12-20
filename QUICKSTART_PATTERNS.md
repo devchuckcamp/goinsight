@@ -67,12 +67,12 @@ query := builder.NewQueryBuilder().
     Limit(10).
     Build()
 
-// Specialized feedback builder
-fbQuery := builder.NewFeedbackQueryBuilder().
+// Specialized feedback builder with parameterized queries
+fbQuery, params := builder.NewFeedbackQueryBuilder().
     WithSentiment("negative").
     WithProductArea("billing").
     Limit(20).
-    BuildFeedback()
+    BuildFeedbackWithParams()
 ```
 
 ---
@@ -337,7 +337,8 @@ builder := builder.NewFeedbackQueryBuilder().
     WithSentiment("negative").
     WithProductArea("billing")
 
-fmt.Println(builder.Build()) // Print generated SQL
+query, params := builder.BuildFeedbackWithParams()
+fmt.Println(query, params) // Print generated SQL and parameters
 ```
 
 ### Service Call Tracing

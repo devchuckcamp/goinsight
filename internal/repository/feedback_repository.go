@@ -11,7 +11,7 @@ import (
 // FeedbackRepository defines the interface for feedback data access operations
 type FeedbackRepository interface {
 	// QueryFeedback executes a feedback query and returns results
-	QueryFeedback(ctx context.Context, query string) ([]map[string]any, error)
+	QueryFeedback(ctx context.Context, query string, args ...any) ([]map[string]any, error)
 
 	// GetAccountRiskScore retrieves ML predictions for a specific account
 	GetAccountRiskScore(ctx context.Context, accountID string) (*domain.AccountRiskScore, error)
@@ -37,8 +37,8 @@ func NewPostgresFeedbackRepository(db *sql.DB) *PostgresFeedbackRepository {
 }
 
 // QueryFeedback executes a feedback query and returns results as maps
-func (r *PostgresFeedbackRepository) QueryFeedback(ctx context.Context, query string) ([]map[string]any, error) {
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *PostgresFeedbackRepository) QueryFeedback(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}

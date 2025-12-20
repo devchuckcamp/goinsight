@@ -261,7 +261,7 @@ func buildSimpleQuery() {
 
 ```go
 func buildSpecializedQuery() {
-    query := builder.NewFeedbackQueryBuilder().
+    query, params := builder.NewFeedbackQueryBuilder().
         Select("id", "topic", "sentiment", "customer_tier").
         WithSentiment("negative").
         WithProductArea("billing").
@@ -269,15 +269,16 @@ func buildSpecializedQuery() {
         WithMinPriority(2).
         OrderBy("priority", "DESC").
         Limit(10).
-        BuildFeedback()
+        BuildFeedbackWithParams()
     
     fmt.Println(query)
+    fmt.Println("Parameters:", params)
     // Output:
     // SELECT id, topic, sentiment, customer_tier
     // FROM feedback_enriched
-    // WHERE sentiment = 'negative'
-    // AND product_area = 'billing'
-    // AND region = 'US'
+    // WHERE sentiment = $1
+    // AND product_area = $2
+    // AND region = $3
     // AND priority >= 2
     // ORDER BY priority DESC
     // LIMIT 10
@@ -334,24 +335,24 @@ func paginateFeedback(pageNum, pageSize int) string {
 ```go
 func getCommonQueries() {
     // Template 1: Recent negative feedback
-    negativeQuery := builder.NewFeedbackQueryBuilder().
+    negativeQuery, params1 := builder.NewFeedbackQueryBuilder().
         WithSentiment("negative").
         OrderBy("created_at", "DESC").
         Limit(50).
-        BuildFeedback()
+        BuildFeedbackWithParams()
     
     // Template 2: High priority issues
-    highPriorityQuery := builder.NewFeedbackQueryBuilder().
+    highPriorityQuery, params2 := builder.NewFeedbackQueryBuilder().
         WithMinPriority(4).
         OrderBy("priority", "DESC").
         OrderBy("created_at", "DESC").
-        BuildFeedback()
+        BuildFeedbackWithParams()
     
     // Template 3: Product area analysis
-    productAreaQuery := builder.NewFeedbackQueryBuilder().
+    productAreaQuery, params3 := builder.NewFeedbackQueryBuilder().
         Select("product_area", "COUNT(*)", "AVG(priority)").
         OrderBy("product_area", "ASC").
-        BuildFeedback()
+        BuildFeedbackWithParams()
     
     return map[string]string{
         "recent_negative":   negativeQuery,
