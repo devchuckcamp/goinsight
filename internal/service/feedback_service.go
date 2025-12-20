@@ -170,9 +170,9 @@ func (s *FeedbackService) CreateJiraTickets(ctx context.Context, req JiraTicketR
 		return nil, fmt.Errorf("no actions provided to convert into tickets")
 	}
 
-	// Set defaults for meta
-	if req.Meta.ProjectKey == "" {
-		req.Meta.ProjectKey = ""
+	// Validate required Jira meta and set defaults
+	if strings.TrimSpace(req.Meta.ProjectKey) == "" {
+		return nil, fmt.Errorf("jira project key is required")
 	}
 	if req.Meta.DefaultIssueType == "" {
 		req.Meta.DefaultIssueType = "Story"
