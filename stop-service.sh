@@ -38,13 +38,13 @@ echo ""
 echo -e "${YELLOW}Note: Volume data is preserved for next startup${NC}"
 echo ""
 
-# Verify containers are stopped
-echo -e "${BLUE}[2/3] Verifying all containers are stopped...${NC}"
-RUNNING=$(docker ps -q | wc -l)
-if [ $RUNNING -eq 0 ]; then
-    echo -e "${GREEN}✓ All containers stopped${NC}"
+# Verify GoInsight containers are stopped
+echo -e "${BLUE}[2/3] Verifying GoInsight containers are stopped...${NC}"
+RUNNING=$(docker-compose ps -q | wc -l)
+if [ "$RUNNING" -eq 0 ]; then
+    echo -e "${GREEN}✓ All GoInsight containers stopped${NC}"
 else
-    echo -e "${YELLOW}⚠ ${RUNNING} container(s) still running${NC}"
+    echo -e "${YELLOW}⚠ ${RUNNING} GoInsight container(s) still running${NC}"
 fi
 echo ""
 
