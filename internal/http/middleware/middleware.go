@@ -61,7 +61,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 				log.Printf("PANIC: %v", err)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"error":"Internal server error"}`))
+			_, _ = w.Write([]byte(`{"error":"Internal server error"}`))
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -76,7 +76,7 @@ func ValidateJSONMiddleware(next http.Handler) http.Handler {
 			if contentType != "" && contentType != "application/json" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`{"error":"Content-Type must be application/json"}`))
+				_, _ = w.Write([]byte(`{"error":"Content-Type must be application/json"}`))
 				return
 			}
 		}

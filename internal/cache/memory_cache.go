@@ -81,8 +81,11 @@ func (mc *MemoryCache) Set(ctx context.Context, key string, value interface{}, t
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	// Check if we need to evict entries
-	if mc.maxSize > 0 && int64(len(mc.data)) >= mc.maxSize && mc.data[key] == nil {
+	// Check if key already exists
+	_, exists := mc.data[key]
+
+	// If key doesn't exist and we're at capacity, evict LRU
+	if !exists && mc.maxSize > 0 && int64(len(mc.data)) >= mc.maxSize {
 		mc.evictLRU()
 	}
 
@@ -100,7 +103,11 @@ func (mc *MemoryCache) Set(ctx context.Context, key string, value interface{}, t
 	mc.data[key] = entry
 	mc.expirations[key] = expiresAt
 	mc.accessTimes[key] = now
-	mc.currentSize++
+	
+	// Only increment size if this is a new key
+	if !exists {
+		mc.currentSize++
+	}
 
 	return nil
 }
@@ -179,7 +186,7 @@ func (mc *MemoryCache) Exists(ctx context.Context, key string) (bool, error) {
 
 	// Check if expired
 	if time.Now().After(entry.ExpiresAt) {
-		mc.Delete(ctx, key)
+		_ = mc.Delete(ctx, key)
 		return false, nil
 	}
 

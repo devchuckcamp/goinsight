@@ -59,7 +59,7 @@ func TestMemoryCacheGet(t *testing.T) {
 	ctx := context.Background()
 
 	// Set a value
-	cache.Set(ctx, "key1", "value1", 0)
+	_ = cache.Set(ctx, "key1", "value1", 0)
 
 	tests := []struct {
 		name          string
@@ -106,8 +106,8 @@ func TestMemoryCacheDelete(t *testing.T) {
 	ctx := context.Background()
 
 	// Set and then delete
-	cache.Set(ctx, "key1", "value1", 0)
-	cache.Delete(ctx, "key1")
+	_ = cache.Set(ctx, "key1", "value1", 0)
+	_ = cache.Delete(ctx, "key1")
 
 	// Verify deletion
 	_, err := cache.Get(ctx, "key1")
@@ -122,12 +122,12 @@ func TestMemoryCacheClear(t *testing.T) {
 	ctx := context.Background()
 
 	// Set multiple values
-	cache.Set(ctx, "key1", "value1", 0)
-	cache.Set(ctx, "key2", "value2", 0)
-	cache.Set(ctx, "key3", "value3", 0)
+	_ = cache.Set(ctx, "key1", "value1", 0)
+	_ = cache.Set(ctx, "key2", "value2", 0)
+	_ = cache.Set(ctx, "key3", "value3", 0)
 
 	// Clear cache
-	cache.Clear(ctx)
+	_ = cache.Clear(ctx)
 
 	// Verify all are gone
 	stats := cache.GetStats(ctx)
@@ -142,7 +142,7 @@ func TestMemoryCacheTTL(t *testing.T) {
 	ctx := context.Background()
 
 	// Set value with 100ms TTL
-	cache.Set(ctx, "key1", "value1", 100*time.Millisecond)
+	_ = cache.Set(ctx, "key1", "value1", 100*time.Millisecond)
 
 	// Should exist immediately
 	_, err := cache.Get(ctx, "key1")
@@ -166,9 +166,9 @@ func TestMemoryCacheLRUEviction(t *testing.T) {
 	ctx := context.Background()
 
 	// Fill cache
-	cache.Set(ctx, "key1", "value1", 0)
-	cache.Set(ctx, "key2", "value2", 0)
-	cache.Set(ctx, "key3", "value3", 0)
+	_ = cache.Set(ctx, "key1", "value1", 0)
+	_ = cache.Set(ctx, "key2", "value2", 0)
+	_ = cache.Set(ctx, "key3", "value3", 0)
 
 	// Verify size
 	stats := cache.GetStats(ctx)
@@ -177,7 +177,7 @@ func TestMemoryCacheLRUEviction(t *testing.T) {
 	}
 
 	// Add one more - should evict least recently used (key1)
-	cache.Set(ctx, "key4", "value4", 0)
+	_ = cache.Set(ctx, "key4", "value4", 0)
 
 	// key1 should be gone
 	_, err := cache.Get(ctx, "key1")
@@ -202,13 +202,13 @@ func TestMemoryCacheSize(t *testing.T) {
 		t.Errorf("Initial size = %d, want 0", stats.Size)
 	}
 
-	cache.Set(ctx, "key1", "value1", 0)
+	_ = cache.Set(ctx, "key1", "value1", 0)
 	stats = cache.GetStats(ctx)
 	if stats.Size != 1 {
 		t.Errorf("Size after 1 insert = %d, want 1", stats.Size)
 	}
 
-	cache.Set(ctx, "key2", "value2", 0)
+	_ = cache.Set(ctx, "key2", "value2", 0)
 	stats = cache.GetStats(ctx)
 	if stats.Size != 2 {
 		t.Errorf("Size after 2 inserts = %d, want 2", stats.Size)
@@ -230,10 +230,10 @@ func TestMemoryCacheConcurrency(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < operationsPerGoroutine; j++ {
 				key := "key"
-				cache.Set(ctx, key, id*operationsPerGoroutine+j, 0)
-				cache.Get(ctx, key)
+				_ = cache.Set(ctx, key, id*operationsPerGoroutine+j, 0)
+				_, _ = cache.Get(ctx, key)
 				if j%10 == 0 {
-					cache.Delete(ctx, key)
+					_ = cache.Delete(ctx, key)
 				}
 			}
 		}(i)
@@ -303,7 +303,7 @@ func BenchmarkMemoryCacheDelete(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cache.Set(ctx, "key", "value", 0)
-		cache.Delete(ctx, "key")
+		_ = cache.Delete(ctx, "key")
 	}
 }
 
