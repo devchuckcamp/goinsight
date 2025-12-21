@@ -248,5 +248,5 @@ internal/
 
 **Focus**: Maintain code quality and extensibility while adding targeted features that improve performance and observability.
 
-**Last Updated**: December 10, 2025
+**Last Updated**: December 20, 2025
 
