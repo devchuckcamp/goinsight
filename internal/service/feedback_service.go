@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/chuckie/goinsight/internal/cache"
 	"github.com/chuckie/goinsight/internal/domain"
 	"github.com/chuckie/goinsight/internal/jira"
 	"github.com/chuckie/goinsight/internal/llm"
@@ -15,15 +17,20 @@ import (
 )
 
 // FeedbackService orchestrates business logic for feedback analysis
-// with integrated performance monitoring and optimization
+// with integrated performance monitoring, caching, and optimization
 type FeedbackService struct {
 	repo           repository.FeedbackRepository
 	llmClient      llm.Client
 	jiraClient     *jira.Client
+	cacheManager   *cache.CacheManager
 	logger         *profiler.Logger
 	queryProfiler  *profiler.QueryProfiler
 	slowQueryLog   *profiler.SlowQueryLogger
 	queryOptimizer *profiler.QueryOptimizer
+
+	// Cache configuration
+	cacheQueryResults bool
+	queryResultsTTL   time.Duration
 }
 
 // NewFeedbackService creates a new feedback service
@@ -60,6 +67,58 @@ func NewFeedbackServiceWithProfiler(
 	}
 }
 
+// NewFeedbackServiceWithCache creates a feedback service with caching enabled
+func NewFeedbackServiceWithCache(
+	repo repository.FeedbackRepository,
+	llmClient llm.Client,
+	jiraClient *jira.Client,
+	cacheManager *cache.CacheManager,
+) *FeedbackService {
+	return &FeedbackService{
+		repo:                 repo,
+		llmClient:            llmClient,
+		jiraClient:           jiraClient,
+		cacheManager:         cacheManager,
+		cacheQueryResults:    true,
+		queryResultsTTL:      5 * time.Minute,
+	}
+}
+
+// NewFeedbackServiceFull creates a feedback service with all features enabled
+func NewFeedbackServiceFull(
+	repo repository.FeedbackRepository,
+	llmClient llm.Client,
+	jiraClient *jira.Client,
+	logger *profiler.Logger,
+	queryProfiler *profiler.QueryProfiler,
+	slowQueryLog *profiler.SlowQueryLogger,
+	queryOptimizer *profiler.QueryOptimizer,
+	cacheManager *cache.CacheManager,
+) *FeedbackService {
+	return &FeedbackService{
+		repo:                 repo,
+		llmClient:            llmClient,
+		jiraClient:           jiraClient,
+		logger:               logger,
+		queryProfiler:        queryProfiler,
+		slowQueryLog:         slowQueryLog,
+		queryOptimizer:       queryOptimizer,
+		cacheManager:         cacheManager,
+		cacheQueryResults:    true,
+		queryResultsTTL:      5 * time.Minute,
+	}
+}
+
+// SetCacheTTL configures the cache TTL for query results
+func (fs *FeedbackService) SetCacheTTL(ttl time.Duration) {
+	fs.queryResultsTTL = ttl
+}
+
+// CacheQueryResults enables/disables query result caching
+func (fs *FeedbackService) CacheQueryResults(enabled bool) {
+	fs.cacheQueryResults = enabled
+}
+
 // QueryRequest represents a question to analyze
 type QueryRequest struct {
 	Question string
@@ -73,6 +132,18 @@ func (s *FeedbackService) AnalyzeFeedback(ctx context.Context, question string) 
 		return nil, fmt.Errorf("question is required")
 	}
 
+	// Step 0: Check cache for previously analyzed questions
+	// (Cache is keyed by question text to allow caching of full insights)
+	if s.cacheManager != nil && s.cacheQueryResults {
+		cachedResponse, found, err := s.cacheManager.GetCachedQueryResult(ctx, question)
+		if err == nil && found {
+			// Cache hit - return cached response
+			if response, ok := cachedResponse.(*domain.AskResponse); ok {
+				return response, nil
+			}
+		}
+	}
+
 	// Step 1: Generate SQL from the question
 	sqlQuery, err := s.llmClient.GenerateSQL(ctx, question)
 	if err != nil {
@@ -84,7 +155,22 @@ func (s *FeedbackService) AnalyzeFeedback(ctx context.Context, question string) 
 		return nil, fmt.Errorf("failed to generate SQL: %w", err)
 	}
 
-	// Step 2: Validate SQL for safety
+	// Step 2: Check cache for SQL query results (if different question generates same SQL)
+	var queryResults []map[string]interface{}
+	var metrics *profiler.QueryMetrics
+	cachedResults := false
+
+	if s.cacheManager != nil && s.cacheQueryResults {
+		cachedData, found, err := s.cacheManager.GetCachedQueryResult(ctx, sqlQuery)
+		if err == nil && found {
+			if results, ok := cachedData.([]map[string]interface{}); ok {
+				queryResults = results
+				cachedResults = true
+			}
+		}
+	}
+
+	// Step 3: Validate SQL for safety
 	if err := s.validateSQL(sqlQuery); err != nil {
 		if s.logger != nil {
 			s.logger.Warn("SQL validation failed", map[string]interface{}{
@@ -96,57 +182,63 @@ func (s *FeedbackService) AnalyzeFeedback(ctx context.Context, question string) 
 		return nil, err
 	}
 
-	// Step 3: Execute the SQL query with profiling
-	var metrics *profiler.QueryMetrics
-	if s.queryProfiler != nil {
-		metrics = s.queryProfiler.StartQueryExecution(sqlQuery)
-	}
-
-	queryResults, err := s.repo.QueryFeedback(ctx, sqlQuery)
-
-	if s.queryProfiler != nil && metrics != nil {
-		rowsReturned := int64(len(queryResults))
-		poolUsage := 1 // Default value, can be enhanced with actual pool metrics
-		s.queryProfiler.RecordQueryExecution(metrics, rowsReturned, poolUsage, false, err)
-
-		// Check if query is slow and log accordingly
-		execTimeMS := metrics.ExecutionTime.Seconds() * 1000
-		if s.slowQueryLog != nil && execTimeMS > 500 {
-			s.slowQueryLog.RecordSlowQuery(
-				metrics.QueryID,
-				sqlQuery,
-				metrics.QueryHash,
-				execTimeMS,
-				500.0,
-				rowsReturned,
-			)
+	// Step 4: Execute the SQL query with profiling (if not cached)
+	if !cachedResults {
+		if s.queryProfiler != nil {
+			metrics = s.queryProfiler.StartQueryExecution(sqlQuery)
 		}
 
-		// Generate optimization suggestions if query is slow
-		if s.queryOptimizer != nil && execTimeMS > 500 {
-			stats := s.queryProfiler.GetStats(metrics.QueryHash)
-			suggestions := s.queryOptimizer.AnalyzeQuery(sqlQuery, stats)
+		queryResults, err = s.repo.QueryFeedback(ctx, sqlQuery)
 
-			if len(suggestions) > 0 && s.logger != nil {
-				s.logger.Debug("Query optimization suggestions", map[string]interface{}{
-					"query_id":     metrics.QueryID,
-					"execution_ms": execTimeMS,
-					"suggestions":  len(suggestions),
-				})
+		if s.queryProfiler != nil && metrics != nil {
+			rowsReturned := int64(len(queryResults))
+			poolUsage := 1 // Default value, can be enhanced with actual pool metrics
+			s.queryProfiler.RecordQueryExecution(metrics, rowsReturned, poolUsage, false, err)
+
+			// Check if query is slow and log accordingly
+			execTimeMS := metrics.ExecutionTime.Seconds() * 1000
+			if s.slowQueryLog != nil && execTimeMS > 500 {
+				s.slowQueryLog.RecordSlowQuery(
+					metrics.QueryID,
+					sqlQuery,
+					metrics.QueryHash,
+					execTimeMS,
+					500.0,
+					rowsReturned,
+				)
+			}
+
+			// Generate optimization suggestions if query is slow
+			if s.queryOptimizer != nil && execTimeMS > 500 {
+				stats := s.queryProfiler.GetStats(metrics.QueryHash)
+				suggestions := s.queryOptimizer.AnalyzeQuery(sqlQuery, stats)
+
+				if len(suggestions) > 0 && s.logger != nil {
+					s.logger.Debug("Query optimization suggestions", map[string]interface{}{
+						"query_id":     metrics.QueryID,
+						"execution_ms": execTimeMS,
+						"suggestions":  len(suggestions),
+					})
+				}
 			}
 		}
-	}
 
-	if err != nil {
-		if s.logger != nil {
-			s.logger.Error("Query execution failed", err, map[string]interface{}{
-				"sql": sqlQuery,
-			})
+		if err != nil {
+			if s.logger != nil {
+				s.logger.Error("Query execution failed", err, map[string]interface{}{
+					"sql": sqlQuery,
+				})
+			}
+			return nil, fmt.Errorf("query execution failed: %w", err)
 		}
-		return nil, fmt.Errorf("query execution failed: %w", err)
+
+		// Cache query results for future use
+		if s.cacheManager != nil && s.cacheQueryResults {
+			_ = s.cacheManager.CacheQueryResult(ctx, sqlQuery, queryResults, s.queryResultsTTL)
+		}
 	}
 
-	// Step 4: Generate insights from the results
+	// Step 5: Generate insights from the results
 	insightJSON, err := s.llmClient.GenerateInsight(ctx, question, queryResults)
 	if err != nil {
 		if s.logger != nil {
@@ -182,6 +274,11 @@ func (s *FeedbackService) AnalyzeFeedback(ctx context.Context, question string) 
 		Summary:         insightResult.Summary,
 		Recommendations: insightResult.Recommendations,
 		Actions:         insightResult.Actions,
+	}
+
+	// Cache the complete response for future identical questions
+	if s.cacheManager != nil && s.cacheQueryResults {
+		_ = s.cacheManager.CacheQueryResult(ctx, question, response, s.queryResultsTTL)
 	}
 
 	if s.logger != nil {
@@ -412,4 +509,43 @@ func (s *FeedbackService) ResetProfiler() {
 	if s.queryProfiler != nil {
 		s.queryProfiler.Reset()
 	}
+}
+// === Cache Management Methods ===
+
+// GetCacheStats returns current cache statistics
+func (s *FeedbackService) GetCacheStats(ctx context.Context) cache.CacheStats {
+	if s.cacheManager == nil {
+		return cache.CacheStats{}
+	}
+	return s.cacheManager.GetCacheStats(ctx)
+}
+
+// ClearCache removes all cached entries
+func (s *FeedbackService) ClearCache(ctx context.Context) error {
+	if s.cacheManager == nil {
+		return nil
+	}
+	return s.cacheManager.ClearCache(ctx)
+}
+
+// InvalidateQueryCache removes a cached query result
+func (s *FeedbackService) InvalidateQueryCache(ctx context.Context, query string) error {
+	if s.cacheManager == nil {
+		return nil
+	}
+	return s.cacheManager.InvalidateQuery(ctx, query)
+}
+
+// InvalidateCachePattern removes cached entries matching a pattern
+// Useful for: Invalidating all queries involving a table after updates
+func (s *FeedbackService) InvalidateCachePattern(ctx context.Context, pattern string) error {
+	if s.cacheManager == nil {
+		return nil
+	}
+	return s.cacheManager.InvalidatePattern(ctx, pattern)
+}
+
+// IsCacheEnabled checks if caching is currently enabled
+func (s *FeedbackService) IsCacheEnabled() bool {
+	return s.cacheManager != nil && s.cacheQueryResults
 }
