@@ -1,15 +1,16 @@
 name: Tests
 
 on:
-  push:
-    branches: [ main, develop, phase-* ]
   pull_request:
     branches: [ main, develop ]
 
 jobs:
   unit-tests:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, macos-latest ]
     
     steps:
     - name: Checkout code
@@ -29,7 +30,10 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, macos-latest ]
     
     steps:
     - name: Checkout code
