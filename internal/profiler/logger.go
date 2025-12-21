@@ -109,7 +109,7 @@ func (l *Logger) rotateFile() error {
 	for i := l.rotationCount - 1; i >= 1; i-- {
 		oldName := fmt.Sprintf("%s.%d", l.logPath, i)
 		newName := fmt.Sprintf("%s.%d", l.logPath, i+1)
-		os.Rename(oldName, newName)
+		_ = os.Rename(oldName, newName)
 	}
 
 	// Move current log to profiler.log.1

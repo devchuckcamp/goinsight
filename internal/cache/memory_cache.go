@@ -179,7 +179,7 @@ func (mc *MemoryCache) Exists(ctx context.Context, key string) (bool, error) {
 
 	// Check if expired
 	if time.Now().After(entry.ExpiresAt) {
-		mc.Delete(ctx, key)
+		_ = mc.Delete(ctx, key)
 		return false, nil
 	}
 

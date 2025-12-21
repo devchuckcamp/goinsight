@@ -127,7 +127,7 @@ func TestMemoryCacheClear(t *testing.T) {
 	_ = cache.Set(ctx, "key3", "value3", 0)
 
 	// Clear cache
-	cache.Clear(ctx)
+	_ = cache.Clear(ctx)
 
 	// Verify all are gone
 	stats := cache.GetStats(ctx)
