@@ -232,9 +232,9 @@ internal/
 ## 🎯 Priority Sequence
 
 1. **Phase 1**: Refactor to service layer (SOLID principles)
-2. **Phase 2**: Add repository pattern (cleaner data access)
+2. **Phase 2**: Add query profiling (observability improvement)
 3. **Phase 3**: Implement query caching (performance improvement)
-4. **Phase 4**: Add query profiling (observability improvement)
+4. **Phase 4**: Add repository pattern (cleaner data access)
 5. **Phase 5**: Enhanced testing and documentation
 
 ## 🔗 Related Resources
