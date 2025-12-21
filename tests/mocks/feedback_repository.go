@@ -21,6 +21,8 @@ type MockFeedbackRepository struct {
 	GetProductAreaImpactsErr     error
 	GetFeedbackCountResult       int
 	GetFeedbackCountErr          error
+	GetFeedbackEnrichedResult    []domain.FeedbackEnriched
+	GetFeedbackEnrichedErr       error
 
 	// Track calls for assertion
 	QueryFeedbackCalled          bool
@@ -37,6 +39,8 @@ type MockFeedbackRepository struct {
 	LastProductAreaSegment       string
 	GetFeedbackCountCalled       bool
 	GetFeedbackCountCount        int
+	GetFeedbackEnrichedCalled    bool
+	EnrichedCallCount            int
 }
 
 // NewMockFeedbackRepository creates a new mock repository
@@ -142,6 +146,28 @@ func (m *MockFeedbackRepository) SetProductAreaImpactsResult(result []map[string
 // SetFeedbackCountResult sets the return value for GetFeedbackEnrichedCount
 func (m *MockFeedbackRepository) SetFeedbackCountResult(count int) {
 	m.GetFeedbackCountResult = count
+}
+
+// SetGetFeedbackEnrichedResult sets the return value for GetFeedbackEnriched
+func (m *MockFeedbackRepository) SetGetFeedbackEnrichedResult(result []domain.FeedbackEnriched) {
+	m.GetFeedbackEnrichedResult = result
+}
+
+// SetGetFeedbackEnrichedError sets the error return value for GetFeedbackEnriched
+func (m *MockFeedbackRepository) SetGetFeedbackEnrichedError(err error) {
+	m.GetFeedbackEnrichedErr = err
+}
+
+// SetQueryFeedbackError sets the error return value for QueryFeedback
+func (m *MockFeedbackRepository) SetQueryFeedbackError(err error) {
+	m.QueryFeedbackErr = err
+}
+
+// GetFeedbackEnriched returns all enriched feedback (mock implementation)
+func (m *MockFeedbackRepository) GetFeedbackEnriched(ctx context.Context) ([]domain.FeedbackEnriched, error) {
+	m.GetFeedbackEnrichedCalled = true
+	m.EnrichedCallCount++
+	return m.GetFeedbackEnrichedResult, m.GetFeedbackEnrichedErr
 }
 
 // ResetCallCounts resets all call tracking

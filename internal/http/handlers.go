@@ -18,7 +18,7 @@ import (
 
 // Handler holds dependencies for HTTP handlers
 type Handler struct {
-	dbClient           *db.Client
+	dbClient           db.DatabaseClient
 	llmClient          llm.Client
 	jiraClient         *jira.Client
 	logger             *profiler.Logger
@@ -28,7 +28,7 @@ type Handler struct {
 }
 
 // NewHandler creates a new HTTP handler
-func NewHandler(dbClient *db.Client, llmClient llm.Client, jiraClient *jira.Client) *Handler {
+func NewHandler(dbClient db.DatabaseClient, llmClient llm.Client, jiraClient *jira.Client) *Handler {
 	return &Handler{
 		dbClient:   dbClient,
 		llmClient:  llmClient,
@@ -38,7 +38,7 @@ func NewHandler(dbClient *db.Client, llmClient llm.Client, jiraClient *jira.Clie
 
 // NewHandlerWithProfiler creates a new HTTP handler with profiler components
 func NewHandlerWithProfiler(
-	dbClient *db.Client,
+	dbClient db.DatabaseClient,
 	llmClient llm.Client,
 	jiraClient *jira.Client,
 	logger *profiler.Logger,

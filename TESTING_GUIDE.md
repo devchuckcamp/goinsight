@@ -553,43 +553,253 @@ go test ./... || exit 1
 go test -race ./... || exit 1
 ```
 
-## Commands Reference
+## Test Utilities and Factories
 
-```bash
-# All tests
-go test ./...
+### Using the Test Factory
 
-# Verbose
-go test -v ./...
+The `tests/testutil/factory.go` provides convenient factory methods for creating test objects:
 
-# With coverage
-go test -cover ./...
+```go
+import "github.com/chuckie/goinsight/tests/testutil"
 
-# With race detector
-go test -race ./...
+// Create test data
+factory := testutil.NewFactory()
 
-# Specific package
-go test ./internal/cache
+// Create single feedback item
+feedback := factory.MakeFeedback("1", "positive")
 
-# Specific test
-go test -run TestMemoryCache ./internal/cache
+// Create multiple feedback items
+feedbacks := factory.MakeFeedbacks(10, "positive")
 
-# Benchmarks
-go test -bench=. -benchmem ./internal/cache
+// Create enriched feedback
+enriched := factory.MakeFeedbackEnriched("1", "positive", "billing")
 
-# Update golden files
-go test -update ./...
+// Create API request/response
+request := factory.MakeAskRequest("What is sentiment?")
+response := factory.MakeAskResponse("Customers are satisfied")
 ```
 
-## Performance Targets
+### Using Mock Database
 
-| Operation | Target | Unit |
-|-----------|--------|------|
-| Cache Get | < 500 | ns/op |
-| Cache Set | < 1,500 | ns/op |
-| Cache Delete | < 2,000 | ns/op |
-| Query Execution | < 50,000 | ns/op |
-| Transaction Begin | < 5,000 | ns/op |
+```go
+import "github.com/chuckie/goinsight/tests/testutil"
+
+// Create mock database
+db := testutil.NewMockDatabase()
+
+// Set up query results
+db.SetQueryResult("SELECT * FROM feedback", []map[string]any{
+    {"id": "1", "feedback": "Great", "sentiment": "positive"},
+})
+
+// Execute query
+results, err := db.ExecuteQuery("SELECT * FROM feedback")
+```
+
+### Test Data Fixtures
+
+Test fixtures are available in `tests/fixtures/seed.sql`:
+
+```bash
+# Load fixtures into test database
+psql -f tests/fixtures/seed.sql
+```
+
+Fixtures include:
+- Sample feedback items (5 entries)
+- Enriched feedback data
+- Account risk scores
+- Product area impacts
+
+## Integration Testing
+
+### Running Integration Tests
+
+```bash
+# Run all integration tests
+go test ./tests/integration -v
+
+# Run specific integration test
+go test ./tests/integration -run TestRepositoryIntegration -v
+
+# Run with timeout
+go test ./tests/integration -timeout 120s -v
+```
+
+### Writing Integration Tests
+
+Integration tests combine multiple components:
+
+```go
+func TestIntegrationFlow(t *testing.T) {
+    // Setup
+    mockRepo := mocks.NewMockFeedbackRepository()
+    factory := testutil.NewFactory()
+    
+    // Create test data
+    testData := factory.MakeFeedbacks(5, "positive")
+    mockRepo.SetQueryFeedbackResult(testData)
+    
+    // Execute
+    results, err := mockRepo.QueryFeedback(context.Background(), "SELECT *")
+    
+    // Assert
+    if err != nil || len(results) != 5 {
+        t.Fail()
+    }
+}
+```
+
+## Using Make Targets
+
+The `Makefile.test` provides convenient test targets:
+
+```bash
+# Run all tests
+make test
+
+# Run with verbose output
+make test-verbose
+
+# Run only unit tests
+make test-unit
+
+# Run only integration tests  
+make test-integration
+
+# Generate coverage report
+make test-coverage
+
+# Generate HTML coverage report
+make test-coverage-html
+
+# Run benchmarks
+make benchmark
+
+# Run specific package tests
+make test-http
+make test-service
+make test-cache
+make test-repository
+
+# Run tests with race detector
+make test-race
+
+# Clean test artifacts
+make clean-test
+
+# View all available targets
+make help-test
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Tests run automatically on:
+- Push to main, develop, or feature branches
+- Pull requests
+
+The workflow file `.github/workflows/test.yml` runs:
+1. **Unit Tests** - Fast tests for pure functions
+2. **Integration Tests** - Tests with dependencies
+3. **Coverage Analysis** - Code coverage reporting
+4. **Race Detector** - Concurrency issues detection
+5. **Benchmarks** - Performance tracking (main branch only)
+6. **Linting** - Code quality checks
+
+### View Results
+
+Coverage reports are sent to Codecov:
+- https://codecov.io/gh/chuckie/goinsight
+
+## Common Testing Patterns
+
+### Table-Driven Tests
+
+```go
+func TestRepository(t *testing.T) {
+    tests := []struct {
+        name    string
+        input   string
+        want    int
+        wantErr bool
+    }{
+        {"valid query", "SELECT *", 1, false},
+        {"invalid query", "INVALID", 0, true},
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            got, err := repo.QueryFeedback(context.Background(), tt.input)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("unexpected error: %v", err)
+            }
+            if len(got) != tt.want {
+                t.Errorf("got %d, want %d", len(got), tt.want)
+            }
+        })
+    }
+}
+```
+
+### Testing with Context
+
+```go
+func TestWithTimeout(t *testing.T) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    
+    results, err := repo.QueryFeedback(ctx, query)
+    if err != nil {
+        t.Fatalf("query failed: %v", err)
+    }
+}
+```
+
+### Testing Concurrency
+
+```go
+func TestConcurrent(t *testing.T) {
+    done := make(chan bool, 10)
+    
+    for i := 0; i < 10; i++ {
+        go func() {
+            _, err := repo.QueryFeedback(context.Background(), query)
+            if err != nil {
+                t.Error(err)
+            }
+            done <- true
+        }()
+    }
+    
+    for i := 0; i < 10; i++ {
+        <-done
+    }
+}
+```
+
+## Coverage Requirements
+
+- **Overall Coverage Target**: 70%+
+- **Package Coverage Targets**:
+  - `internal/http`: 80%+
+  - `internal/service`: 75%+
+  - `internal/cache`: 85%+
+  - `internal/repository`: 70%+ (database-dependent)
+
+### Generate Coverage Report
+
+```bash
+# Generate coverage data
+go test -coverprofile=coverage.out ./...
+
+# View coverage report
+go tool cover -html=coverage.out
+
+# Check specific package coverage
+go tool cover -func=coverage.out | grep internal/http
+```
 
 ## Additional Resources
 
