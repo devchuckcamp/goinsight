@@ -12,14 +12,19 @@ import (
 	"github.com/chuckie/goinsight/internal/domain"
 	"github.com/chuckie/goinsight/internal/jira"
 	"github.com/chuckie/goinsight/internal/llm"
+	"github.com/chuckie/goinsight/internal/profiler"
 	"github.com/go-chi/chi/v5"
 )
 
 // Handler holds dependencies for HTTP handlers
 type Handler struct {
-	dbClient   *db.Client
-	llmClient  llm.Client
-	jiraClient *jira.Client
+	dbClient           *db.Client
+	llmClient          llm.Client
+	jiraClient         *jira.Client
+	logger             *profiler.Logger
+	queryProfiler      *profiler.QueryProfiler
+	slowQueryLog       *profiler.SlowQueryLogger
+	queryOptimizer     *profiler.QueryOptimizer
 }
 
 // NewHandler creates a new HTTP handler
@@ -28,6 +33,27 @@ func NewHandler(dbClient *db.Client, llmClient llm.Client, jiraClient *jira.Clie
 		dbClient:   dbClient,
 		llmClient:  llmClient,
 		jiraClient: jiraClient,
+	}
+}
+
+// NewHandlerWithProfiler creates a new HTTP handler with profiler components
+func NewHandlerWithProfiler(
+	dbClient *db.Client,
+	llmClient llm.Client,
+	jiraClient *jira.Client,
+	logger *profiler.Logger,
+	queryProfiler *profiler.QueryProfiler,
+	slowQueryLog *profiler.SlowQueryLogger,
+	queryOptimizer *profiler.QueryOptimizer,
+) *Handler {
+	return &Handler{
+		dbClient:       dbClient,
+		llmClient:      llmClient,
+		jiraClient:     jiraClient,
+		logger:         logger,
+		queryProfiler:  queryProfiler,
+		slowQueryLog:   slowQueryLog,
+		queryOptimizer: queryOptimizer,
 	}
 }
 
@@ -97,7 +123,47 @@ func (h *Handler) Ask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 2: Execute the SQL query
+	var metrics *profiler.QueryMetrics
+	if h.queryProfiler != nil {
+		metrics = h.queryProfiler.StartQueryExecution(sqlQuery)
+	}
+
+	start := time.Now()
 	queryResults, err := h.dbClient.ExecuteQuery(sqlQuery)
+	duration := time.Since(start)
+
+	// Log query to profiler if available
+	if metrics != nil {
+		metrics.ExecutionTime = duration
+		metrics.RowsReturned = int64(len(queryResults))
+		metrics.EndTime = time.Now()
+		metrics.Error = err
+		
+		// Record to query profiler
+		h.queryProfiler.RecordQueryExecution(metrics, int64(len(queryResults)), 1, false, err)
+		
+		// Record to slow query logger if threshold exceeded
+		thresholdMS := 500.0
+		if duration.Milliseconds() > int64(thresholdMS) {
+			h.slowQueryLog.RecordSlowQuery(
+				metrics.QueryID,
+				sqlQuery,
+				metrics.QueryHash,
+				float64(duration.Milliseconds()),
+				thresholdMS,
+				int64(len(queryResults)),
+			)
+		}
+		
+		// Analyze for optimization opportunities
+		if h.queryOptimizer != nil {
+			stats := h.queryProfiler.GetStats(metrics.QueryHash)
+			if stats != nil {
+				h.queryOptimizer.AnalyzeQuery(sqlQuery, stats)
+			}
+		}
+	}
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Query execution failed: %v. SQL was: %s", err, sqlQuery))
 		return
