@@ -41,6 +41,8 @@ services:
       DEBUG: ${DEBUG:-false}
     ports:
       - "8080:8080"
+    volumes:
+      - ./logs:/root/logs
     depends_on:
       postgres:
         condition: service_healthy
