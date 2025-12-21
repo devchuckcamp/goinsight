@@ -52,6 +52,12 @@ func NewClient(databaseURL string) (*Client, error) {
 	return &Client{db: db}, nil
 }
 
+// DB returns the underlying *sql.DB connection
+// Useful for creating repositories or other low-level operations
+func (c *Client) DB() *sql.DB {
+	return c.db
+}
+
 // Close closes the database connection
 func (c *Client) Close() error {
 	return c.db.Close()
