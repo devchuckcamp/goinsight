@@ -58,33 +58,81 @@ GoInsight integrates with **[tens-insight](https://github.com/devchuckcamp/tens-
 ```
 goinsight/
 ├── cmd/
-│   ├── api/              # Main API server entrypoint
+│   ├── api/                      # Main API server entrypoint
 │   │   └── main.go
-│   └── seed/             # Database seeder utility
+│   └── seed/                     # Database seeder utility
 │       └── main.go
 ├── internal/
-│   ├── config/           # Configuration & environment variable loading
+│   ├── builder/                  # Query builder utilities
+│   │   └── query_builder.go
+│   ├── cache/                    # Caching layer
+│   │   ├── cache.go
+│   │   ├── manager.go
+│   │   ├── memory_cache.go
+│   │   └── memory_cache_test.go
+│   ├── config/                   # Configuration & environment variable loading
 │   │   └── config.go
-│   ├── db/               # Database client and query execution
-│   │   ├── postgres.go
-│   │   └── migrations.go
-│   ├── domain/           # Domain models and types
-│   │   └── feedback.go
-│   ├── http/             # HTTP handlers and routing
+│   ├── db/                       # Database client and query execution
+│   │   ├── interface.go
+│   │   ├── migrations.go
+│   │   └── postgres.go
+│   ├── domain/                   # Domain models and types
+│   │   ├── feedback.go
+│   │   └── jira.go
+│   ├── http/                     # HTTP handlers and routing
 │   │   ├── handlers.go
-│   │   └── router.go
-│   └── llm/              # LLM client interface and implementations
-│       ├── client.go     # Interface definition
-│       ├── prompts.go    # System prompts for SQL and insight generation
-│       ├── openai_client.go
-│       └── mock_client.go
-├── migrations/           # SQL migration files
+│   │   ├── handlers_test.go
+│   │   ├── middleware/
+│   │   │   └── middleware.go
+│   │   ├── router.go
+│   │   └── service_handler.go
+│   ├── jira/                     # Jira integration
+│   │   └── client.go
+│   ├── llm/                      # LLM client interface and implementations
+│   │   ├── client.go             # Interface definition
+│   │   ├── groq_client.go        # Groq API implementation
+│   │   ├── mock_client.go        # Mock implementation for testing
+│   │   ├── ollama_client.go      # Ollama implementation
+│   │   ├── openai_client.go      # OpenAI implementation
+│   │   └── prompts.go            # System prompts for SQL and insight generation
+│   ├── profiler/                 # Query profiling and optimization
+│   │   ├── init.go
+│   │   ├── logger.go
+│   │   ├── optimizer.go
+│   │   ├── query_profiler.go
+│   │   └── slow_query_log.go
+│   └── repository/               # Data access layer
+│       ├── factory.go
+│       ├── feedback_repository.go
+│       ├── feedback_repository_test.go
+│       ├── query_builder.go
+│       ├── transaction.go
+│       └── transaction_test.go
+├── migrations/                   # SQL migration files
 │   ├── 001_init.sql
-│   └── 002_seed_feedback.sql
+│   ├── 002_seed_feedback.sql
+│   ├── 003_add_account_risk_scores.sql
+│   └── 004_add_product_area_impact.sql
+├── tests/                        # Test utilities and integration tests
+│   ├── fixtures/
+│   │   └── seed.sql
+│   ├── integration/
+│   │   ├── api_integration_test.go
+│   │   ├── repository_test.go
+│   │   ├── service_test.go
+│   │   └── test_helpers.go
+│   ├── mocks/
+│   │   └── feedback_repository.go
+│   └── testutil/
+│       ├── db.go
+│       └── factory.go
+├── docs/                         # Documentation and images
+│   └── images/
+├── logs/                         # Application logs
+├── bin/                          # Compiled binaries
+│   └── api
 ├── Dockerfile
 ├── docker-compose.yml
-├── .env.example          # Example environment variables (NEVER commit real .env!)
-├── .gitignore
 ├── go.mod
 ├── go.sum
 └── README.md

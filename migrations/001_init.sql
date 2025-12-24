@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS feedback_enriched (
     topic         TEXT NOT NULL,
     region        TEXT NOT NULL,
     customer_tier TEXT NOT NULL,
+    account_id    VARCHAR,
     summary       TEXT NOT NULL
 );
 
@@ -19,3 +20,4 @@ CREATE INDEX IF NOT EXISTS idx_feedback_priority ON feedback_enriched(priority);
 CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback_enriched(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_feedback_customer_tier ON feedback_enriched(customer_tier);
 CREATE INDEX IF NOT EXISTS idx_feedback_region ON feedback_enriched(region);
+CREATE INDEX IF NOT EXISTS idx_feedback_account_id ON feedback_enriched(account_id);
