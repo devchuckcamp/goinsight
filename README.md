@@ -445,6 +445,7 @@ CREATE TABLE feedback_enriched (
     topic         TEXT NOT NULL,        -- 'refund issues', 'slow load times', etc.
     region        TEXT NOT NULL,        -- 'NA', 'EU', 'APAC'
     customer_tier TEXT NOT NULL,        -- 'free', 'pro', 'enterprise'
+    account_id    VARCHAR,              -- Customer account identifier
     summary       TEXT NOT NULL         -- Short feedback summary
 );
 ```
